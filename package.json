@@ -1,0 +1,20 @@
+{
+  "name": "sentinel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI risk intelligence + auto fee optimizer for Bags creators",
+  "workspaces": [
+    "worker",
+    "dashboard",
+    "shared"
+  ],
+  "scripts": {
+    "check": "npm --workspaces run check",
+    "dev:worker": "npm --workspace worker run dev",
+    "dev:dashboard": "npm --workspace dashboard run dev",
+    "deploy:worker": "npm --workspace worker run deploy",
+    "deploy:dashboard": "npm --workspace dashboard run deploy"
+  },
+  "keywords": ["bags", "sentinel", "solana", "risk-scoring", "fee-optimizer", "ai-agent"],
+  "license": "MIT"
+}
