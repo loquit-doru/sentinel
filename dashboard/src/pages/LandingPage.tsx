@@ -1,23 +1,34 @@
 import { useEffect, useState } from 'react';
-import { fetchTokenFeed } from '../api';
+import { fetchTokenFeed, fetchApiStats } from '../api';
 
 interface LiveStats {
   tokensTracked: number;
+  totalApiCalls: number;
+  riskScans: number;
+  todayCalls: number;
   loading: boolean;
 }
 
 function useLiveStats(): LiveStats {
-  const [tokensTracked, setTokensTracked] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<LiveStats>({
+    tokensTracked: 0, totalApiCalls: 0, riskScans: 0, todayCalls: 0, loading: true,
+  });
 
   useEffect(() => {
-    fetchTokenFeed()
-      .then((t) => setTokensTracked(t.length))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([fetchTokenFeed(), fetchApiStats()])
+      .then(([tokens, apiStats]) => {
+        setStats({
+          tokensTracked: tokens.length,
+          totalApiCalls: apiStats?.totalRequests ?? 0,
+          riskScans: apiStats?.byEndpoint.risk ?? 0,
+          todayCalls: apiStats?.today.total ?? 0,
+          loading: false,
+        });
+      })
+      .catch(() => setStats((s) => ({ ...s, loading: false })));
   }, []);
 
-  return { tokensTracked, loading };
+  return stats;
 }
 
 function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
@@ -40,7 +51,7 @@ function StatBox({ value, label }: { value: string; label: string }) {
 }
 
 export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
-  const { tokensTracked, loading } = useLiveStats();
+  const stats = useLiveStats();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -118,11 +129,17 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
       <section className="border-y border-sentinel-border/30 bg-sentinel-surface/30 py-8 px-6">
         <div className="max-w-3xl mx-auto flex items-center justify-around gap-6">
           <StatBox
-            value={loading ? '…' : tokensTracked.toString()}
+            value={stats.loading ? '…' : stats.tokensTracked.toString()}
             label="Tokens Tracked"
           />
-          <StatBox value="8" label="Risk Factors" />
-          <StatBox value="3" label="Data Sources" />
+          <StatBox
+            value={stats.loading ? '…' : stats.totalApiCalls.toLocaleString()}
+            label="API Calls"
+          />
+          <StatBox
+            value={stats.loading ? '…' : stats.riskScans.toLocaleString()}
+            label="Risk Scans"
+          />
           <StatBox value="<1s" label="Response Time" />
         </div>
       </section>

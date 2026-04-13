@@ -42,3 +42,20 @@ export async function fetchClaimTransactions(wallet: string, tokenMint: string):
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to build claim transactions');
   return body.data;
 }
+
+export interface ApiStats {
+  totalRequests: number;
+  byEndpoint: { risk: number; fees: number; claim: number; feed: number };
+  today: { date: string; total: number; risk: number; fees: number; claim: number; feed: number };
+  yesterday: { date: string; total: number };
+}
+
+export async function fetchApiStats(): Promise<ApiStats | null> {
+  try {
+    const res = await fetch(`${API_URL}/stats`);
+    const body: ApiResponse<ApiStats> = await res.json();
+    return body.ok && body.data ? body.data : null;
+  } catch {
+    return null;
+  }
+}

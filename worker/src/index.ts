@@ -20,6 +20,40 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use('/*', cors());
 
+// ── Analytics middleware ──────────────────────────────────
+// Fire-and-forget: track API usage in KV for traction metrics
+
+app.use('/v1/*', async (c, next) => {
+  await next();
+  const kv = c.env.SENTINEL_KV;
+  if (!kv) return;
+
+  const path = new URL(c.req.url).pathname;
+  const endpoint =
+    path.startsWith('/v1/risk/') ? 'risk' :
+    path.startsWith('/v1/fees/claim') ? 'claim' :
+    path.startsWith('/v1/fees/') ? 'fees' :
+    path.startsWith('/v1/tokens/') ? 'feed' : 'other';
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  c.executionCtx.waitUntil(
+    Promise.all([
+      // Total hits per endpoint (all-time)
+      kv.get(`stats:total:${endpoint}`).then((v) =>
+        kv.put(`stats:total:${endpoint}`, String(Number(v || 0) + 1)),
+      ),
+      // Daily hits
+      kv.get(`stats:day:${today}:${endpoint}`).then((v) =>
+        kv.put(`stats:day:${today}:${endpoint}`, String(Number(v || 0) + 1), { expirationTtl: 86400 * 30 }),
+      ),
+      // Global daily total
+      kv.get(`stats:day:${today}:total`).then((v) =>
+        kv.put(`stats:day:${today}:total`, String(Number(v || 0) + 1), { expirationTtl: 86400 * 30 }),
+      ),
+    ]).catch(() => {}),
+  );
+});
+
 // ── Health ───────────────────────────────────────────────
 
 app.get('/health', (c) => {
@@ -28,6 +62,57 @@ app.get('/health', (c) => {
     service: 'sentinel-api',
     version: '0.1.0',
     pillars: ['risk-scoring', 'fee-optimizer'],
+  });
+});
+
+// ── Public Stats ─────────────────────────────────────────
+
+app.get('/stats', async (c) => {
+  const kv = c.env.SENTINEL_KV;
+  if (!kv) return c.json({ ok: false, error: 'KV not configured' }, 500);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400_000).toISOString().slice(0, 10);
+
+  const endpoints = ['risk', 'fees', 'claim', 'feed'] as const;
+
+  const [totalRisk, totalFees, totalClaim, totalFeed, todayTotal, yesterdayTotal, ...dailyEndpoints] =
+    await Promise.all([
+      kv.get('stats:total:risk'),
+      kv.get('stats:total:fees'),
+      kv.get('stats:total:claim'),
+      kv.get('stats:total:feed'),
+      kv.get(`stats:day:${today}:total`),
+      kv.get(`stats:day:${yesterday}:total`),
+      ...endpoints.map((e) => kv.get(`stats:day:${today}:${e}`)),
+    ]);
+
+  const totalAll = [totalRisk, totalFees, totalClaim, totalFeed]
+    .reduce((s, v) => s + Number(v || 0), 0);
+
+  return c.json({
+    ok: true,
+    data: {
+      totalRequests: totalAll,
+      byEndpoint: {
+        risk: Number(totalRisk || 0),
+        fees: Number(totalFees || 0),
+        claim: Number(totalClaim || 0),
+        feed: Number(totalFeed || 0),
+      },
+      today: {
+        date: today,
+        total: Number(todayTotal || 0),
+        risk: Number(dailyEndpoints[0] || 0),
+        fees: Number(dailyEndpoints[1] || 0),
+        claim: Number(dailyEndpoints[2] || 0),
+        feed: Number(dailyEndpoints[3] || 0),
+      },
+      yesterday: {
+        date: yesterday,
+        total: Number(yesterdayTotal || 0),
+      },
+    },
   });
 });
 
