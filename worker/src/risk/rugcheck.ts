@@ -4,7 +4,7 @@ const RUGCHECK_BASE = 'https://api.rugcheck.xyz/v1';
 
 export async function fetchRugCheckReport(mint: string): Promise<RugCheckReport | null> {
   try {
-    const res = await fetch(`${RUGCHECK_BASE}/tokens/${mint}/report`);
+    const res = await fetch(`${RUGCHECK_BASE}/tokens/${mint}/report`, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) {
       console.error(`RugCheck ${res.status} for ${mint}`);
       return null;

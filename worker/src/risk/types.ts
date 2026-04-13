@@ -91,8 +91,8 @@ export interface BirdeyeTokenOverview {
   name: string;
   decimals: number;
   liquidity: number;
-  volume24h: number;         // v24hUSD
-  volume24hChangePercent: number;
+  v24hUSD: number;           // 24h volume in USD
+  v24hChangePercent: number;
   price: number;             // USD
   priceChange24hPercent: number;
   mc: number;                // market cap

@@ -18,56 +18,59 @@ interface BagsLeaderboardItem {
     liquidity: number;
     holderCount: number;
     stats24h?: {
-      volume: number;
       priceChange: number;
       buyVolume: number;
       sellVolume: number;
-      numTrades: number;
       numBuys: number;
       numSells: number;
       numTraders: number;
-      numBuyTraders: number;
-      numSellTraders: number;
     };
   } | null;
-  creators: Array<{ address: string; percentage: number }> | null;
+  creators: Array<{ wallet: string; royaltyBps: number }> | null;
   tokenSupply: { amount: string; decimals: number; uiAmount: number } | null;
-  tokenLatestPrice: { price: number; timestamp: number } | null;
+  tokenLatestPrice: { price: number; priceUSD: number } | null;
+}
+
+interface BagsApiResponse {
+  success: boolean;
+  response: BagsLeaderboardItem[];
 }
 
 export async function fetchTopTokens(apiKey?: string): Promise<TokenFeedItem[]> {
   const headers: Record<string, string> = {};
   if (apiKey) headers['x-api-key'] = apiKey;
 
-  const res = await fetch(`${BAGS_API_BASE}/token-launch/top-tokens/lifetime-fees`, { headers });
+  const res = await fetch(`${BAGS_API_BASE}/token-launch/top-tokens/lifetime-fees`, {
+    headers,
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) {
     console.error(`Bags API ${res.status}: ${res.statusText}`);
     return [];
   }
 
-  const body = await res.json() as BagsLeaderboardItem[] | { success: false; error: string };
-
-  // API may wrap errors in { success: false, error: "..." }
-  if (!Array.isArray(body)) {
-    console.error('Bags API error:', (body as { error: string }).error);
+  const body = await res.json() as BagsApiResponse;
+  if (!body.success || !Array.isArray(body.response)) {
+    console.error('Bags API error or unexpected format');
     return [];
   }
 
-  return body
+  return body.response
     .filter((item) => item.tokenInfo !== null)
     .map((item): TokenFeedItem => {
       const info = item.tokenInfo!;
       const stats = info.stats24h;
+      const volume24h = (stats?.buyVolume ?? 0) + (stats?.sellVolume ?? 0);
       return {
         mint: item.token,
         name: info.name,
         symbol: info.symbol,
         imageUrl: info.icon ?? '',
-        createdAt: 0, // not available from this endpoint
-        volume24h: stats?.volume ?? 0,
+        createdAt: 0,
+        volume24h,
         fdv: info.fdv ?? 0,
         priceChangePct24h: stats?.priceChange ?? 0,
-        riskScore: null, // enriched later
+        riskScore: null,
         riskTier: null,
         lifetimeFees: parseFloat(item.lifetimeFees) || 0,
       };

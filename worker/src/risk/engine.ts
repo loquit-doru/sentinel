@@ -1,7 +1,7 @@
 import { RISK_WEIGHTS, TIER_SAFE_MIN, TIER_CAUTION_MIN, TIER_DANGER_MIN } from '../../../shared/constants';
 import type { RiskScore, RiskBreakdown, RiskTier } from '../../../shared/types';
 import { fetchRugCheckReport, analyzeRugCheck } from './rugcheck';
-import { fetchBirdeyeSecurity, fetchBirdeyeOverview, analyzeBirdeye } from './birdeye';
+import { fetchBirdeyeOverview, analyzeBirdeye } from './birdeye';
 import { fetchTopHolders, analyzeHeliusHolders } from './helius';
 
 function tierFromScore(score: number): RiskTier {
@@ -21,11 +21,11 @@ export async function computeRiskScore(
   env: EngineEnv,
 ): Promise<RiskScore> {
   // Fetch all sources in parallel
-  const [rugReport, birdSecurity, birdOverview, heliusHolders] = await Promise.all([
+  // Note: Birdeye token_security requires paid plan (401 on free tier),
+  // and the 401 triggers rate limiting on subsequent requests.
+  // We get security data from RugCheck instead.
+  const [rugReport, birdOverview, heliusHolders] = await Promise.all([
     fetchRugCheckReport(mint),
-    env.BIRDEYE_API_KEY
-      ? fetchBirdeyeSecurity(mint, env.BIRDEYE_API_KEY)
-      : Promise.resolve(null),
     env.BIRDEYE_API_KEY
       ? fetchBirdeyeOverview(mint, env.BIRDEYE_API_KEY)
       : Promise.resolve(null),
@@ -36,7 +36,7 @@ export async function computeRiskScore(
 
   // Analyze each source
   const rug = rugReport ? analyzeRugCheck(rugReport) : null;
-  const bird = analyzeBirdeye(birdSecurity, birdOverview);
+  const bird = analyzeBirdeye(null, birdOverview);
   const helius = analyzeHeliusHolders(heliusHolders);
 
   // Build breakdown from best available data

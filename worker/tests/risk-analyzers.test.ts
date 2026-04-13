@@ -134,7 +134,7 @@ describe('analyzeBirdeye', () => {
   it('normalizes liquidity to 100 at $100K', () => {
     const r = analyzeBirdeye(null, {
       address: 'x', symbol: 'X', name: 'X', decimals: 9,
-      liquidity: 100_000, volume24h: 0, volume24hChangePercent: 0,
+      liquidity: 100_000, v24hUSD: 0, v24hChangePercent: 0,
       price: 1, priceChange24hPercent: 0, mc: 0, fdv: 0,
       trade24h: 0, uniqueWallet24h: 0, holder: 0,
     });
@@ -144,7 +144,7 @@ describe('analyzeBirdeye', () => {
   it('caps liquidity at 100 for > $100K', () => {
     const r = analyzeBirdeye(null, {
       address: 'x', symbol: 'X', name: 'X', decimals: 9,
-      liquidity: 500_000, volume24h: 0, volume24hChangePercent: 0,
+      liquidity: 500_000, v24hUSD: 0, v24hChangePercent: 0,
       price: 1, priceChange24hPercent: 0, mc: 0, fdv: 0,
       trade24h: 0, uniqueWallet24h: 0, holder: 0,
     });
@@ -154,7 +154,7 @@ describe('analyzeBirdeye', () => {
   it('normalizes volume to 100 at $10K', () => {
     const r = analyzeBirdeye(null, {
       address: 'x', symbol: 'X', name: 'X', decimals: 9,
-      liquidity: 0, volume24h: 10_000, volume24hChangePercent: 0,
+      liquidity: 0, v24hUSD: 10_000, v24hChangePercent: 0,
       price: 1, priceChange24hPercent: 0, mc: 0, fdv: 0,
       trade24h: 0, uniqueWallet24h: 0, holder: 0,
     });

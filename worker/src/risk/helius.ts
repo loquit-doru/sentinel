@@ -14,6 +14,7 @@ export async function fetchTopHolders(
         method: 'getTokenLargestAccounts',
         params: [mint],
       }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
       console.error(`Helius RPC ${res.status}`);

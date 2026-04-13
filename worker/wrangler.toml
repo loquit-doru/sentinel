@@ -2,12 +2,11 @@ name = "sentinel-api"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 
-# [vars]
-# RUGCHECK_API_URL = "https://api.rugcheck.xyz"
-# HELIUS_API_KEY = ""
-# BIRDEYE_API_KEY = ""
-# BAGS_API_KEY = ""
-# TELEGRAM_BOT_TOKEN = ""
+[vars]
+HELIUS_API_KEY = ""
+BIRDEYE_API_KEY = ""
+BAGS_API_KEY = ""
+TELEGRAM_BOT_TOKEN = ""
 
 [observability]
 enabled = true
