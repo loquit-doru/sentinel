@@ -1,6 +1,7 @@
 import type { RiskScore, TokenFeedItem, ApiResponse } from '../../shared/types';
 
-const BASE = '/v1';
+const API_URL = import.meta.env.VITE_API_URL ?? 'https://sentinel-api.apiworkersdev.workers.dev';
+const BASE = `${API_URL}/v1`;
 
 export async function fetchRiskScore(mint: string): Promise<RiskScore> {
   const res = await fetch(`${BASE}/risk/${mint}`);

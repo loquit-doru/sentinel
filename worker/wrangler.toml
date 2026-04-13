@@ -2,19 +2,16 @@ name = "sentinel-api"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 
-[vars]
-HELIUS_API_KEY = ""
-BIRDEYE_API_KEY = ""
-BAGS_API_KEY = ""
-TELEGRAM_BOT_TOKEN = ""
+# API keys are set as secrets (wrangler secret put)
+# For local dev, use worker/.dev.vars
 
 [observability]
 enabled = true
 
 [[kv_namespaces]]
 binding = "SENTINEL_KV"
-id = "placeholder"             # npx wrangler kv namespace create SENTINEL_KV
-preview_id = "placeholder"     # npx wrangler kv namespace create SENTINEL_KV --preview
+id = "0404ed24f0d94a3498965f3ee2bbffb9"
+preview_id = "6615319c926a4836ada7e73634004ffe"
 
 # [[d1_databases]]
 # binding = "DB"
