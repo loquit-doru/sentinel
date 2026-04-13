@@ -1,7 +1,7 @@
 # SENTINEL — Project Master Plan
 
 > **"Don't trade blind."**
-> AI risk intelligence + auto fee optimizer for Bags creators.
+> AI risk intelligence + wallet portfolio scanner for Bags traders & creators.
 
 ---
 
@@ -37,32 +37,29 @@ AI-powered risk score 0-100 for any token on Bags.
 | KV cache (60s TTL per token) | Pattern from apix402 | ✅ |
 | API endpoint: `GET /v1/risk/:mint` | New | ✅ |
 
-### Pillar 2 — Auto Fee Optimizer
-Agent that claims + compounds fees for creators automatically.
+### Pillar 2 — Wallet X-Ray (portfolio risk scanner)
+Paste any Solana wallet → instant risk scan of ALL token holdings.
 
 | Component | Source | Status |
 |-----------|--------|--------|
-| `sdk.fee.getAllClaimablePositions()` integration | Bags SDK | ✅ |
-| `sdk.fee.getClaimTransactions()` integration | Bags SDK | ✅ |
-| Fee dashboard (claimable amounts across all tokens) | New | ✅ |
-| Auto-claim agent (periodic check + claim when profitable) | New | ⬜ |
-| Compound mode (claimed fees → reinvest in best performer) | New | ⬜ |
-| Partner config (`sdk.partner` + `sdk.config`) | Bags SDK | ⬜ |
-| Transaction signing + claim execution (wallet adapter) | New | ✅ |
-| API endpoint: `GET /v1/fees/:wallet` | New | ✅ |
-| API endpoint: `POST /v1/fees/claim` | New | ✅ |
-| Claim All button (batch claim) | New | ✅ |
-| VersionedTransaction support | New | ✅ |
+| Helius `getTokenAccountsByOwner` (fetch all SPL holdings) | Helius RPC | ✅ |
+| Batch risk scoring (up to 20 tokens concurrently) | Risk Engine | ✅ |
+| Portfolio Health score (weighted avg of all holdings) | New | ✅ |
+| Flagged tokens alert (score < 40 highlighted) | New | ✅ |
+| KV cache per-token (60s TTL, shared with Pillar 1) | Existing | ✅ |
+| API endpoint: `GET /v1/portfolio/:wallet` | New | ✅ |
+| Dashboard page (input → scan → health + holdings list) | New | ✅ |
 
 ### Supporting Features (lightweight, not pillars)
 
 | Feature | Priority | Status |
 |---------|----------|--------|
 | Discovery feed (new tokens, sorted by volume/risk) | HIGH | ✅ |
+| MCP Server (Claude can query risk scores — 4 tools) | MEDIUM | ✅ |
+| Landing page (hero, features, CTA, live stats) | HIGH | ✅ |
+| Analytics (Plausible + internal KV tracking + /stats) | MEDIUM | ✅ |
 | Trending alerts (volume spikes, velocity) | MEDIUM | ⬜ |
-| Telegram alerts (risk changes, fee claimable) | MEDIUM | ⬜ |
-| MCP Server (Claude can query risk scores) | LOW | ⬜ |
-| Claude Skill (NLP risk queries) | LOW | ⬜ |
+| Telegram alerts (risk changes, portfolio health) | MEDIUM | ⬜ |
 
 ---
 
@@ -189,35 +186,34 @@ Agent that claims + compounds fees for creators automatically.
 - [x] Deploy dashboard pe Cloudflare Pages
 - [x] **Deliverable**: Dashboard live cu discovery + risk scores
 
-### W4: May 5-11 — FEE OPTIMIZER (pillar 2)
-- [x] `sdk.fee.getAllClaimablePositions()` — list all claimable for a wallet
-- [x] `sdk.fee.getClaimTransactions()` — build claim txs
-- [x] Fee dashboard page (total claimable, per-token breakdown)
-- [x] Claim button (one-click claim all)
-- [ ] Auto-claim agent logic (periodic check, threshold-based)
-- [ ] Compound mode v1 (claim → reinvest via `sdk.trade`)
-- [ ] Partner config: Sentinel as fee-share recipient
-- [x] Transaction signing flow (wallet adapter: Phantom + Solflare)
-- [x] **Deliverable**: Fee optimizer funcțional end-to-end
+### W4: May 5-11 — WALLET X-RAY (pillar 2)
+- [x] Helius `getTokenAccountsByOwner` — fetch all SPL holdings
+- [x] Batch risk scoring (up to 20 tokens concurrently)
+- [x] Portfolio Health score (weighted average)
+- [x] Flagged tokens (score < 40) highlighted
+- [x] `GET /v1/portfolio/:wallet` endpoint
+- [x] WalletXRayPage dashboard component
+- [ ] Share button (link to wallet scan result)
+- [ ] Historical tracking (portfolio health over time)
+- [x] **Deliverable**: Wallet X-Ray funcțional end-to-end
 
 ### W5: May 12-18 — ALERTS + POLISH
 - [ ] Telegram bot setup (@SentinelBagsBot)
 - [ ] Alert: risk score change (token drops from Safe to Danger)
-- [ ] Alert: new fees claimable above threshold
+- [ ] Alert: portfolio health drop (wallet scan alert)
 - [ ] Alert: trending token (volume spike >5x in 1h)
-- [ ] Dashboard polish (animations, loading states, error handling)
-- [ ] Dark mode (navy/black + cyan/blue electric — per R4 recommendation)
-- [ ] Landing page (hero, features, CTA)
+- [x] Dashboard polish (animations, loading states, error handling)
+- [x] Dark mode (navy/black + cyan/blue electric)
+- [x] Landing page (hero, features, CTA, live stats)
 - [ ] **Deliverable**: Alerts funcționale, dashboard polished
 
-### W6: May 19-25 — TOKEN LAUNCH + INTEGRATIONS
+### W6: May 19-25 — TOKEN + INTEGRATIONS
 - [x] $SENT token launch pe Bags — `Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`
 - [ ] Fee share config: 50% creator, 30% holders, 20% dev
-- [ ] Token-gated premium features (auto-compound, priority alerts)
-- [ ] MCP Server (optional — risk score query tool for Claude)
-- [ ] Claude Skill (optional — "How risky is $TOKEN?")
+- [ ] Token-gated premium features (priority alerts, deeper scans)
+- [x] MCP Server (4 tools: risk score, trending, fees, compare)
 - [ ] Update bags.fm/apply cu contract address
-- [ ] **Deliverable**: $SENT live pe Bags, premium features gated
+- [ ] **Deliverable**: $SENT live pe Bags, MCP server released
 
 ### W7: May 26 — Jun 1 — DEMO + COMMUNITY + SUBMIT
 - [ ] Demo video 3-5 min (screen recording + voiceover)
@@ -244,9 +240,9 @@ Agent that claims + compounds fees for creators automatically.
 **Full demo (3-5 min):**
 1. Discovery feed — browse trending Bags tokens
 2. Risk score deep-dive — pick a token, show all signals
-3. Fee optimizer — connect wallet, see unclaimed fees, one-click claim
-4. Auto-compound — fees reinvested automatically
-5. Telegram alert — live notification of risk change
+3. Wallet X-Ray — paste a wallet, scan all holdings, portfolio health
+4. Flagged tokens — "3 tokens in your wallet are Danger-rated"
+5. MCP Server — Claude queries risk score via natural language
 6. Token $SENT — premium unlock flow
 
 ---
@@ -278,7 +274,7 @@ Agent that claims + compounds fees for creators automatically.
 | 8 | Cluck Norris | 673 | Other | Education app, not intelligence |
 | 9 | Trenchy.fun | 672 | Social Finance | Closest competitor — but no risk engine |
 
-**Key insight**: Nobody in top 9 does real-time risk scoring + fee optimization. We fill a gap.
+**Key insight**: Nobody in top 9 does real-time risk scoring + wallet portfolio scanning. We fill a gap.
 
 ---
 
@@ -329,12 +325,12 @@ sentinel/
 │   │   │   ├── helius.ts    ← Helius DAS client
 │   │   │   ├── birdeye.ts   ← Birdeye API client
 │   │   │   └── types.ts     ← RiskScore, RiskTier, etc.
+│   │   ├── portfolio/
+│   │   │   └── scanner.ts   ← wallet x-ray scanner
 │   │   ├── fees/
-│   │   │   ├── optimizer.ts ← fee claim + compound logic
-│   │   │   └── partner.ts   ← Bags partner config
-│   │   ├── bags/
-│   │   │   ├── sdk.ts       ← Bags SDK wrapper
-│   │   │   └── feed.ts      ← token feed from Bags
+│   │   │   └── bags-fees.ts  ← fee data (kept for MCP)
+│   │   ├── feed/
+│   │   │   └── bags.ts       ← token feed from Bags
 │   │   └── alerts/
 │   │       └── telegram.ts  ← Telegram bot notifications
 │   ├── wrangler.toml
@@ -344,10 +340,10 @@ sentinel/
 │   ├── src/
 │   │   ├── App.tsx
 │   │   ├── pages/
-│   │   │   ├── Discovery.tsx
-│   │   │   ├── TokenDetail.tsx
-│   │   │   ├── FeeOptimizer.tsx
-│   │   │   └── Landing.tsx
+│   │   │   ├── FeedPage.tsx
+│   │   │   ├── RiskDetailPage.tsx
+│   │   │   ├── WalletXRayPage.tsx
+│   │   │   └── LandingPage.tsx
 │   │   ├── components/
 │   │   │   ├── RiskGauge.tsx
 │   │   │   ├── TokenCard.tsx
@@ -373,8 +369,8 @@ La final, Sentinel trebuie să poată:
 
 1. **Risk Score**: Dai un mint address → primești scor 0-100 + breakdown în <2 sec
 2. **Discovery**: Deschizi dashboard → vezi ultimele 50 tokens sortate by risk/volume
-3. **Fee Optimizer**: Conectezi wallet → vezi fees claimable → one-click claim
-4. **Auto-compound**: Toggle ON → fees claimed automat + reinvestite
+3. **Wallet X-Ray**: Pui un wallet → vezi toate holdings cu risk scores + portfolio health
+4. **MCP Server**: Claude poate interoga risk scores via natural language
 5. **Alerts**: Primești Telegram: "⚠️ $TOKEN dropped from Safe to Danger"
 6. **App Store**: Sentinel apare pe bags.fm/apps cu Verified badge
 7. **Token**: $SENT live pe Bags, premium features gated

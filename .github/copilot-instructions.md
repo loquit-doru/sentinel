@@ -5,20 +5,20 @@
 - Keep code, identifiers, and user-facing strings in English.
 
 ## Big Picture
-- **Project**: Sentinel ($SENT) — AI risk intelligence + auto fee optimizer for Bags creators.
+- **Project**: Sentinel ($SENT) — AI risk intelligence + wallet portfolio scanner for Bags traders & creators.
 - **Hackathon**: The Bags Hackathon ($4M funding), deadline 2 June 2026, track: AI Agents.
 - **Stack**: TypeScript, Cloudflare Workers (Hono), React 18 + Vite + Tailwind, Bags SDK, Solana.
 - **Architecture**: Monorepo with `worker/`, `dashboard/`, `shared/` packages.
 
 | Package | Purpose |
 |---------|---------|
-| `worker/` | Cloudflare Worker API (risk scoring, fee optimizer, token feed) |
-| `dashboard/` | React frontend (discovery, risk detail, fee dashboard) |
+| `worker/` | Cloudflare Worker API (risk scoring, wallet x-ray, token feed) |
+| `dashboard/` | React frontend (discovery, risk detail, wallet x-ray) |
 | `shared/` | Shared types + constants |
 
 ## Core Pillars (only 2 — don't add more)
 1. **Risk Scoring Engine** — RugCheck + Helius DAS + Birdeye → score 0-100 per token
-2. **Auto Fee Optimizer** — Bags SDK fee.* → claim + compound creator fees
+2. **Wallet X-Ray** — Paste wallet → scan all holdings → portfolio health score + flagged tokens
 
 ## Implementation Guidelines
 - Follow existing code patterns per package.

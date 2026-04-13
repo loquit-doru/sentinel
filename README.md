@@ -2,7 +2,7 @@
 
 > **Don't trade blind.**
 
-AI risk intelligence + auto fee optimizer for [Bags](https://bags.fm) creators. Built for the [Bags Hackathon](https://bags.fm/hackathon) ($4M funding) — Track: **AI Agents**.
+AI risk intelligence + wallet portfolio scanner for [Bags](https://bags.fm) traders & creators. Built for the [Bags Hackathon](https://bags.fm/hackathon) ($4M funding) — Track: **AI Agents**.
 
 **$SENT**: [`Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`](https://bags.fm/token/Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS) — launched on Bags
 
@@ -30,19 +30,14 @@ Real-time risk score **0-100** for any token on Bags. Combines 8 weighted signal
 
 **Tiers**: 🟢 Safe (70-100) · 🟡 Caution (40-69) · 🔴 Danger (10-39) · ⛔ Rug (0-9)
 
-### Pillar 2 — Auto Fee Optimizer
-Discovers unclaimed creator fees across all tokens, builds claim transactions, and supports batch claiming with a single click.
+### Pillar 2 — Wallet X-Ray
+Paste any Solana wallet → instant risk scan of ALL token holdings. Portfolio health score + flagged tokens.
 
-- Wallet connect (Phantom / Solflare)
-- Per-position and "Claim All" batch claiming
-- VersionedTransaction support
-- Transaction signatures with Solscan links
-
-### Token Launch Wizard
-3-step guided flow to launch a new token on Bags with custom fee-share configuration:
-1. **Token Details** — name, symbol, description, image, socials
-2. **Fee Distribution** — allocate bps across wallets (presets included)
-3. **Review & Launch** — sign and deploy on-chain
+- Scans all SPL token holdings via Helius RPC
+- Batch risk scoring (up to 20 tokens concurrently)
+- **Portfolio Health** score (0-100, weighted average)
+- Flagged tokens (score < 40) highlighted in red
+- Click any token → full risk breakdown
 
 ---
 
@@ -73,11 +68,7 @@ sentinel/
 | GET | `/stats` | API usage analytics |
 | GET | `/v1/risk/:mint` | Risk score (0-100) for any token |
 | GET | `/v1/tokens/feed` | Top tokens by lifetime fees |
-| GET | `/v1/fees/:wallet` | Claimable fee positions |
-| POST | `/v1/fees/claim` | Build claim transactions |
-| POST | `/v1/token/create` | Create token metadata |
-| POST | `/v1/token/fee-config` | Create fee-share config |
-| POST | `/v1/token/launch` | Build launch transaction |
+| GET | `/v1/portfolio/:wallet` | Wallet X-Ray (all holdings + risk) |
 
 ### Stack
 
@@ -124,10 +115,10 @@ Then ask Claude: *"How risky is token DezXAZ...B263?"* or *"Show me trending tok
 
 ## Bags Integration
 
-- **Bags API**: Token feed (lifetime fees, creators), claimable positions, claim transactions
-- **Bags SDK**: Token launch, fee-share config, partner registration
-- **Fee Sharing**: Full claim + compound flow with wallet signing
-- **Token Launch**: Create + configure + deploy tokens on Bags
+- **Bags API**: Token feed (lifetime fees, creators), claimable positions
+- **Bags SDK**: Partner registration, fee-share config
+- **Risk Scoring**: RugCheck + Birdeye + Helius → 8 weighted signals → score 0-100
+- **Wallet X-Ray**: Helius RPC → all holdings → batch risk scoring → portfolio health
 
 ---
 
