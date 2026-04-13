@@ -41,20 +41,23 @@ Agent that claims + compounds fees for creators automatically.
 
 | Component | Source | Status |
 |-----------|--------|--------|
-| `sdk.fee.getAllClaimablePositions()` integration | Bags SDK | ⬜ |
-| `sdk.fee.getClaimTransactions()` integration | Bags SDK | ⬜ |
-| Fee dashboard (claimable amounts across all tokens) | New | ⬜ |
+| `sdk.fee.getAllClaimablePositions()` integration | Bags SDK | ✅ |
+| `sdk.fee.getClaimTransactions()` integration | Bags SDK | ✅ |
+| Fee dashboard (claimable amounts across all tokens) | New | ✅ |
 | Auto-claim agent (periodic check + claim when profitable) | New | ⬜ |
 | Compound mode (claimed fees → reinvest in best performer) | New | ⬜ |
 | Partner config (`sdk.partner` + `sdk.config`) | Bags SDK | ⬜ |
-| Transaction signing (session keys / Bags agent auth) | New | ⬜ |
-| API endpoint: `GET /v1/fees/:wallet` | New | ⬜ |
+| Transaction signing + claim execution (wallet adapter) | New | ✅ |
+| API endpoint: `GET /v1/fees/:wallet` | New | ✅ |
+| API endpoint: `POST /v1/fees/claim` | New | ✅ |
+| Claim All button (batch claim) | New | ✅ |
+| VersionedTransaction support | New | ✅ |
 
 ### Supporting Features (lightweight, not pillars)
 
 | Feature | Priority | Status |
 |---------|----------|--------|
-| Discovery feed (new tokens, sorted by volume/risk) | HIGH | ⬜ |
+| Discovery feed (new tokens, sorted by volume/risk) | HIGH | ✅ |
 | Trending alerts (volume spikes, velocity) | MEDIUM | ⬜ |
 | Telegram alerts (risk changes, fee claimable) | MEDIUM | ⬜ |
 | MCP Server (Claude can query risk scores) | LOW | ⬜ |
@@ -154,13 +157,13 @@ Agent that claims + compounds fees for creators automatically.
 - [x] Repo setup (monorepo: `worker/`, `dashboard/`, `shared/`)
 - [x] `npm init`, TypeScript strict, Hono, wrangler.toml
 - [x] Install + test `@bagsfm/bags-sdk` v1.3.7
-- [ ] Bags API key de la dev.bags.fm
-- [ ] Helius free tier RPC + API key
+- [x] Bags API key de la dev.bags.fm
+- [x] Helius free tier RPC + API key
 - [ ] **Submit pe bags.fm/apply** (AI Agents, "no coin yet")
 - [ ] Partner config exploratory (`sdk.partner`, `sdk.config`)
 - [x] Basic token feed endpoint (list recent launches via Bags API)
 - [x] RugCheck API: first call, understand response schema
-- [ ] Birdeye API: first call, get token data
+- [x] Birdeye API: first call, get token data
 - [x] **Deliverable**: API live pe CF Workers, risk scoring funcțional
 
 ### W2: Apr 21-27 — RISK ENGINE (core algorithm)
@@ -182,19 +185,19 @@ Agent that claims + compounds fees for creators automatically.
 - [x] Search bar (by token name, mint address)
 - [ ] Filter/sort (risk level, volume, age)
 - [x] Responsive design (mobile-first — Bags users are mobile)
-- [ ] Deploy dashboard pe Cloudflare Pages
-- [ ] **Deliverable**: Dashboard live cu discovery + risk scores
+- [x] Deploy dashboard pe Cloudflare Pages
+- [x] **Deliverable**: Dashboard live cu discovery + risk scores
 
 ### W4: May 5-11 — FEE OPTIMIZER (pillar 2)
-- [ ] `sdk.fee.getAllClaimablePositions()` — list all claimable for a wallet
-- [ ] `sdk.fee.getClaimTransactions()` — build claim txs
-- [ ] Fee dashboard page (total claimable, per-token breakdown)
-- [ ] Claim button (one-click claim all)
+- [x] `sdk.fee.getAllClaimablePositions()` — list all claimable for a wallet
+- [x] `sdk.fee.getClaimTransactions()` — build claim txs
+- [x] Fee dashboard page (total claimable, per-token breakdown)
+- [x] Claim button (one-click claim all)
 - [ ] Auto-claim agent logic (periodic check, threshold-based)
 - [ ] Compound mode v1 (claim → reinvest via `sdk.trade`)
 - [ ] Partner config: Sentinel as fee-share recipient
-- [ ] Transaction signing flow (Bags agent auth or session keys)
-- [ ] **Deliverable**: Fee optimizer funcțional end-to-end
+- [x] Transaction signing flow (wallet adapter: Phantom + Solflare)
+- [x] **Deliverable**: Fee optimizer funcțional end-to-end
 
 ### W5: May 12-18 — ALERTS + POLISH
 - [ ] Telegram bot setup (@SentinelBagsBot)

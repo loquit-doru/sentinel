@@ -20,6 +20,20 @@ function formatSol(n: number): string {
   return '0 SOL';
 }
 
+/** Deserialize a base58-encoded tx; auto-detect legacy vs versioned. */
+function deserializeTx(base58Str: string): Transaction | VersionedTransaction {
+  const bytes = bs58.decode(base58Str);
+  // Versioned transactions have a prefix byte >= 0x80
+  if (bytes[0] >= 0x80) {
+    return VersionedTransaction.deserialize(bytes);
+  }
+  return Transaction.from(bytes);
+}
+
+function shortenSig(sig: string): string {
+  return `${sig.slice(0, 8)}…${sig.slice(-8)}`;
+}
+
 type ClaimState = 'idle' | 'building' | 'signing' | 'sending' | 'success' | 'error';
 
 function PositionRow({
@@ -28,12 +42,14 @@ function PositionRow({
   onClaim,
   claimState,
   claimError,
+  txSignature,
 }: {
   pos: ClaimablePosition;
   rank: number;
   onClaim: (mint: string) => void;
   claimState: ClaimState;
   claimError: string | null;
+  txSignature: string | null;
 }) {
   const versionBadge = pos.source === 'fee-share-v2'
     ? 'bg-sentinel-accent/10 text-sentinel-accent border-sentinel-accent/30'
@@ -66,6 +82,16 @@ function PositionRow({
         {claimState === 'error' && claimError && (
           <p className="text-xs text-sentinel-danger mt-1">{claimError}</p>
         )}
+        {claimState === 'success' && txSignature && (
+          <a
+            href={`https://solscan.io/tx/${txSignature}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-sentinel-accent hover:underline mt-1 inline-block"
+          >
+            Tx: {shortenSig(txSignature)} ↗
+          </a>
+        )}
       </div>
 
       <div className="text-right shrink-0 flex items-center gap-3">
@@ -94,13 +120,15 @@ function PositionRow({
 }
 
 export function FeePage() {
-  const { publicKey, signTransaction, connected } = useWallet();
+  const { publicKey, signTransaction, signAllTransactions, connected } = useWallet();
   const { connection } = useConnection();
   const [snapshot, setSnapshot] = useState<FeeSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimStates, setClaimStates] = useState<Record<string, ClaimState>>({});
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
+  const [claimSigs, setClaimSigs] = useState<Record<string, string>>({});
+  const [claimAllBusy, setClaimAllBusy] = useState(false);
 
   const walletAddress = publicKey?.toBase58() ?? '';
 
@@ -134,6 +162,7 @@ export function FeePage() {
 
     setClaimStates((s) => ({ ...s, [tokenMint]: 'building' }));
     setClaimErrors((s) => ({ ...s, [tokenMint]: '' }));
+    setClaimSigs((s) => ({ ...s, [tokenMint]: '' }));
 
     try {
       // 1. Get unsigned transactions from backend
@@ -143,30 +172,41 @@ export function FeePage() {
         throw new Error('No claim transactions returned');
       }
 
+      let lastSig = '';
+
       // 2. Sign and send each transaction
       for (const txData of transactions) {
         setClaimStates((s) => ({ ...s, [tokenMint]: 'signing' }));
 
-        // Decode base58 → Transaction
-        const txBytes = bs58.decode(txData.tx);
-        const tx = Transaction.from(txBytes);
+        // Deserialize (auto-detect legacy vs versioned)
+        const tx = deserializeTx(txData.tx);
 
-        // Sign with wallet
+        // Sign with wallet adapter
         const signed = await signTransaction(tx);
 
         setClaimStates((s) => ({ ...s, [tokenMint]: 'sending' }));
 
-        // Send signed transaction
-        const sig = await connection.sendRawTransaction(signed.serialize(), {
+        // Serialize and send
+        const rawTx = signed instanceof VersionedTransaction
+          ? signed.serialize()
+          : signed.serialize();
+
+        const sig = await connection.sendRawTransaction(rawTx, {
           skipPreflight: false,
           preflightCommitment: 'confirmed',
         });
 
         // Wait for confirmation
-        await connection.confirmTransaction(sig, 'confirmed');
+        await connection.confirmTransaction(
+          { signature: sig, blockhash: txData.blockhash, lastValidBlockHeight: txData.lastValidBlockHeight },
+          'confirmed',
+        );
+
+        lastSig = sig;
       }
 
       setClaimStates((s) => ({ ...s, [tokenMint]: 'success' }));
+      setClaimSigs((s) => ({ ...s, [tokenMint]: lastSig }));
 
       // Refresh fees after 2s to show updated balances
       setTimeout(() => {
@@ -178,6 +218,20 @@ export function FeePage() {
       setClaimErrors((s) => ({ ...s, [tokenMint]: msg }));
     }
   }, [walletAddress, signTransaction, connection, loadFees]);
+
+  const handleClaimAll = useCallback(async () => {
+    if (!snapshot || !walletAddress) return;
+    const claimable = snapshot.positions.filter(
+      (p) => p.claimableUsd > 0 && (claimStates[p.tokenMint] ?? 'idle') !== 'success',
+    );
+    if (!claimable.length) return;
+
+    setClaimAllBusy(true);
+    for (const pos of claimable) {
+      await handleClaim(pos.tokenMint);
+    }
+    setClaimAllBusy(false);
+  }, [snapshot, walletAddress, claimStates, handleClaim]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
@@ -229,9 +283,20 @@ export function FeePage() {
                   {formatUsd(snapshot.totalClaimableUsd)}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Positions</p>
-                <p className="text-lg font-semibold text-white">{snapshot.positions.length}</p>
+              <div className="text-right space-y-2">
+                <div>
+                  <p className="text-xs text-gray-500">Positions</p>
+                  <p className="text-lg font-semibold text-white">{snapshot.positions.length}</p>
+                </div>
+                {snapshot.positions.length > 1 && snapshot.totalClaimableUsd > 0 && (
+                  <button
+                    onClick={handleClaimAll}
+                    disabled={claimAllBusy || !signTransaction}
+                    className="text-xs font-medium px-3 py-1.5 rounded-md bg-sentinel-safe hover:bg-sentinel-safe/80 disabled:bg-sentinel-safe/30 disabled:cursor-not-allowed text-white transition-all"
+                  >
+                    {claimAllBusy ? 'Claiming…' : 'Claim All'}
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-sentinel-border/50">
@@ -258,6 +323,7 @@ export function FeePage() {
                     onClaim={handleClaim}
                     claimState={claimStates[pos.tokenMint] ?? 'idle'}
                     claimError={claimErrors[pos.tokenMint] ?? null}
+                    txSignature={claimSigs[pos.tokenMint] ?? null}
                   />
                 ))}
             </div>
