@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { Transaction, VersionedTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
 import type { FeeSnapshot, ClaimablePosition } from '../../../shared/types';
-import { fetchFeeSnapshot } from '../api';
+import { fetchFeeSnapshot, fetchClaimTransactions } from '../api';
 
 function formatUsd(n: number): string {
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
@@ -15,10 +20,35 @@ function formatSol(n: number): string {
   return '0 SOL';
 }
 
-function PositionRow({ pos, rank }: { pos: ClaimablePosition; rank: number }) {
+type ClaimState = 'idle' | 'building' | 'signing' | 'sending' | 'success' | 'error';
+
+function PositionRow({
+  pos,
+  rank,
+  onClaim,
+  claimState,
+  claimError,
+}: {
+  pos: ClaimablePosition;
+  rank: number;
+  onClaim: (mint: string) => void;
+  claimState: ClaimState;
+  claimError: string | null;
+}) {
   const versionBadge = pos.source === 'fee-share-v2'
     ? 'bg-sentinel-accent/10 text-sentinel-accent border-sentinel-accent/30'
     : 'bg-gray-800 text-gray-400 border-gray-700';
+
+  const isBusy = claimState === 'building' || claimState === 'signing' || claimState === 'sending';
+
+  const stateLabel: Record<ClaimState, string> = {
+    idle: 'Claim',
+    building: 'Building tx…',
+    signing: 'Sign in wallet…',
+    sending: 'Sending…',
+    success: '✓ Claimed',
+    error: 'Retry',
+  };
 
   return (
     <div className="group flex items-center gap-4 p-4 rounded-lg border border-sentinel-border/50 hover:border-sentinel-border bg-sentinel-surface/40 hover:bg-sentinel-surface transition-all">
@@ -33,25 +63,48 @@ function PositionRow({ pos, rank }: { pos: ClaimablePosition; rank: number }) {
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5 font-mono truncate">{pos.tokenMint}</p>
+        {claimState === 'error' && claimError && (
+          <p className="text-xs text-sentinel-danger mt-1">{claimError}</p>
+        )}
       </div>
 
-      <div className="text-right shrink-0">
-        <p className="text-sentinel-safe font-semibold text-sm">{formatUsd(pos.claimableUsd)}</p>
-        <p className="text-gray-500 text-xs">{formatSol(pos.claimableAmount)}</p>
+      <div className="text-right shrink-0 flex items-center gap-3">
+        <div>
+          <p className="text-sentinel-safe font-semibold text-sm">{formatUsd(pos.claimableUsd)}</p>
+          <p className="text-gray-500 text-xs">{formatSol(pos.claimableAmount)}</p>
+        </div>
+        <button
+          onClick={() => onClaim(pos.tokenMint)}
+          disabled={isBusy || claimState === 'success'}
+          className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all whitespace-nowrap ${
+            claimState === 'success'
+              ? 'bg-sentinel-safe/20 text-sentinel-safe border border-sentinel-safe/30 cursor-default'
+              : claimState === 'error'
+                ? 'bg-sentinel-danger/10 text-sentinel-danger border border-sentinel-danger/30 hover:bg-sentinel-danger/20'
+                : isBusy
+                  ? 'bg-sentinel-accent/20 text-sentinel-accent/60 border border-sentinel-accent/20 cursor-wait'
+                  : 'bg-sentinel-accent hover:bg-sentinel-accent-dim text-white'
+          }`}
+        >
+          {stateLabel[claimState]}
+        </button>
       </div>
     </div>
   );
 }
 
 export function FeePage() {
-  const [wallet, setWallet] = useState('');
-  const [inputVal, setInputVal] = useState('');
+  const { publicKey, signTransaction, connected } = useWallet();
+  const { connection } = useConnection();
   const [snapshot, setSnapshot] = useState<FeeSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [claimStates, setClaimStates] = useState<Record<string, ClaimState>>({});
+  const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
+
+  const walletAddress = publicKey?.toBase58() ?? '';
 
   const loadFees = useCallback((w: string) => {
-    setWallet(w);
     setLoading(true);
     setError(null);
     fetchFeeSnapshot(w)
@@ -60,52 +113,84 @@ export function FeePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Auto-refresh every 30s when wallet is set
+  // Load fees when wallet connects
   useEffect(() => {
-    if (!wallet) return;
-    const id = setInterval(() => loadFees(wallet), 30_000);
-    return () => clearInterval(id);
-  }, [wallet, loadFees]);
+    if (walletAddress) {
+      loadFees(walletAddress);
+    } else {
+      setSnapshot(null);
+    }
+  }, [walletAddress, loadFees]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = inputVal.trim();
-    if (trimmed) loadFees(trimmed);
-  };
+  // Auto-refresh every 30s when wallet is connected
+  useEffect(() => {
+    if (!walletAddress) return;
+    const id = setInterval(() => loadFees(walletAddress), 30_000);
+    return () => clearInterval(id);
+  }, [walletAddress, loadFees]);
+
+  const handleClaim = useCallback(async (tokenMint: string) => {
+    if (!walletAddress || !signTransaction) return;
+
+    setClaimStates((s) => ({ ...s, [tokenMint]: 'building' }));
+    setClaimErrors((s) => ({ ...s, [tokenMint]: '' }));
+
+    try {
+      // 1. Get unsigned transactions from backend
+      const { transactions } = await fetchClaimTransactions(walletAddress, tokenMint);
+
+      if (!transactions.length) {
+        throw new Error('No claim transactions returned');
+      }
+
+      // 2. Sign and send each transaction
+      for (const txData of transactions) {
+        setClaimStates((s) => ({ ...s, [tokenMint]: 'signing' }));
+
+        // Decode base58 → Transaction
+        const txBytes = bs58.decode(txData.tx);
+        const tx = Transaction.from(txBytes);
+
+        // Sign with wallet
+        const signed = await signTransaction(tx);
+
+        setClaimStates((s) => ({ ...s, [tokenMint]: 'sending' }));
+
+        // Send signed transaction
+        const sig = await connection.sendRawTransaction(signed.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        });
+
+        // Wait for confirmation
+        await connection.confirmTransaction(sig, 'confirmed');
+      }
+
+      setClaimStates((s) => ({ ...s, [tokenMint]: 'success' }));
+
+      // Refresh fees after 2s to show updated balances
+      setTimeout(() => {
+        if (walletAddress) loadFees(walletAddress);
+      }, 2000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Claim failed';
+      setClaimStates((s) => ({ ...s, [tokenMint]: 'error' }));
+      setClaimErrors((s) => ({ ...s, [tokenMint]: msg }));
+    }
+  }, [walletAddress, signTransaction, connection, loadFees]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       {/* Header */}
       <div className="text-center space-y-2">
         <h2 className="text-xl font-bold">Fee Optimizer</h2>
-        <p className="text-gray-400 text-sm">Discover unclaimed creator fees from Bags positions</p>
+        <p className="text-gray-400 text-sm">Discover and claim creator fees from Bags positions</p>
       </div>
 
-      {/* Wallet input */}
-      <form onSubmit={handleSubmit} className="w-full">
-        <div className="relative group">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-sentinel-accent transition-colors pointer-events-none">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="6" width="20" height="13" rx="2" /><path d="M17 11h.01" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Enter Solana wallet address…"
-            spellCheck={false}
-            className="w-full bg-sentinel-surface border border-sentinel-border rounded-lg pl-10 pr-28 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-sentinel-accent/60 focus:ring-1 focus:ring-sentinel-accent/20 transition-all"
-          />
-          <button
-            type="submit"
-            disabled={!inputVal.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-sentinel-accent hover:bg-sentinel-accent-dim disabled:bg-sentinel-accent/30 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-1.5 rounded-md transition-all"
-          >
-            Check
-          </button>
-        </div>
-      </form>
+      {/* Wallet connect */}
+      <div className="flex justify-center">
+        <WalletMultiButton className="!bg-sentinel-accent hover:!bg-sentinel-accent-dim !rounded-lg !text-sm !font-medium !h-10 !px-5" />
+      </div>
 
       {/* Loading */}
       {loading && (
@@ -124,7 +209,7 @@ export function FeePage() {
           <p className="text-sentinel-danger font-semibold">Failed to load fees</p>
           <p className="text-gray-400 text-sm">{error}</p>
           <button
-            onClick={() => loadFees(wallet)}
+            onClick={() => walletAddress && loadFees(walletAddress)}
             className="text-sm text-sentinel-accent hover:underline mt-1"
           >
             Retry
@@ -166,7 +251,14 @@ export function FeePage() {
               {snapshot.positions
                 .sort((a, b) => b.claimableUsd - a.claimableUsd)
                 .map((pos, i) => (
-                  <PositionRow key={pos.tokenMint} pos={pos} rank={i + 1} />
+                  <PositionRow
+                    key={pos.tokenMint}
+                    pos={pos}
+                    rank={i + 1}
+                    onClaim={handleClaim}
+                    claimState={claimStates[pos.tokenMint] ?? 'idle'}
+                    claimError={claimErrors[pos.tokenMint] ?? null}
+                  />
                 ))}
             </div>
           ) : (
@@ -181,15 +273,15 @@ export function FeePage() {
         </div>
       )}
 
-      {/* Empty state: no wallet yet */}
-      {!wallet && !loading && (
+      {/* Empty state: wallet not connected */}
+      {!connected && !loading && (
         <div className="text-center py-12 text-gray-600 space-y-3 animate-fade-in">
           <p className="text-4xl">💰</p>
-          <p className="text-sm">Enter a wallet to discover unclaimed Bags creator fees</p>
+          <p className="text-sm">Connect your wallet to discover unclaimed Bags creator fees</p>
           <div className="flex flex-wrap justify-center gap-2 text-[10px] text-gray-600">
             <span className="bg-sentinel-surface px-2 py-1 rounded border border-sentinel-border/50">Auto Fee Discovery</span>
+            <span className="bg-sentinel-surface px-2 py-1 rounded border border-sentinel-border/50">One-Click Claim</span>
             <span className="bg-sentinel-surface px-2 py-1 rounded border border-sentinel-border/50">v1 + v2 Positions</span>
-            <span className="bg-sentinel-surface px-2 py-1 rounded border border-sentinel-border/50">Real-time Data</span>
           </div>
         </div>
       )}

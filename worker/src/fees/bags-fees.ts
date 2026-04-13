@@ -79,3 +79,55 @@ export async function fetchClaimablePositions(
     lastUpdated: Date.now(),
   };
 }
+
+// ── Claim Transactions ───────────────────────────────────
+
+interface BagsClaimTxRaw {
+  tx: string; // base58-encoded unsigned transaction
+  blockhash: {
+    blockhash: string;
+    lastValidBlockHeight: number;
+  };
+}
+
+export interface ClaimTxPayload {
+  transactions: Array<{
+    tx: string;  // base58
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }>;
+}
+
+export async function fetchClaimTransactions(
+  wallet: string,
+  tokenMint: string,
+  apiKey?: string,
+): Promise<ClaimTxPayload> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['x-api-key'] = apiKey;
+
+  const res = await fetch(`${BAGS_API_BASE}/token-launch/claim-txs/v3`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ feeClaimer: wallet, tokenMint }),
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Bags claim-txs ${res.status}: ${text}`);
+  }
+
+  const body = await res.json() as { success: boolean; response: BagsClaimTxRaw[] };
+  if (!body.success || !Array.isArray(body.response)) {
+    throw new Error('Bags claim-txs: unexpected response format');
+  }
+
+  return {
+    transactions: body.response.map((item) => ({
+      tx: item.tx,
+      blockhash: item.blockhash.blockhash,
+      lastValidBlockHeight: item.blockhash.lastValidBlockHeight,
+    })),
+  };
+}

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { computeRiskScore } from './risk/engine';
 import { fetchTopTokens } from './feed/bags';
-import { fetchClaimablePositions } from './fees/bags-fees';
+import { fetchClaimablePositions, fetchClaimTransactions } from './fees/bags-fees';
 
 export interface Env {
   // Secrets
@@ -104,6 +104,27 @@ app.get('/v1/fees/:wallet', async (c) => {
   } catch (err) {
     console.error('Fee positions error:', err);
     return c.json({ ok: false, error: 'Failed to fetch fee positions' }, 500);
+  }
+});
+
+// ── Claim Transactions ───────────────────────────────────
+
+app.post('/v1/fees/claim', async (c) => {
+  const body = await c.req.json<{ wallet?: string; tokenMint?: string }>().catch(() => ({} as { wallet?: string; tokenMint?: string }));
+
+  if (!body.wallet || !SOLANA_ADDR_RE.test(body.wallet)) {
+    return c.json({ ok: false, error: 'Invalid wallet address' }, 400);
+  }
+  if (!body.tokenMint || !SOLANA_ADDR_RE.test(body.tokenMint)) {
+    return c.json({ ok: false, error: 'Invalid token mint address' }, 400);
+  }
+
+  try {
+    const payload = await fetchClaimTransactions(body.wallet, body.tokenMint, c.env.BAGS_API_KEY);
+    return c.json({ ok: true, data: payload });
+  } catch (err) {
+    console.error('Claim tx error:', err);
+    return c.json({ ok: false, error: 'Failed to build claim transactions' }, 500);
   }
 });
 
