@@ -3,6 +3,8 @@ import { cors } from 'hono/cors';
 import { computeRiskScore } from './risk/engine';
 import { fetchTopTokens } from './feed/bags';
 import { fetchClaimablePositions, fetchClaimTransactions } from './fees/bags-fees';
+import { createTokenInfo, createLaunchTransaction, createFeeShareConfig } from './token/launch';
+import type { FeeClaimerEntry } from './token/launch';
 
 export interface Env {
   // Secrets
@@ -210,6 +212,107 @@ app.post('/v1/fees/claim', async (c) => {
   } catch (err) {
     console.error('Claim tx error:', err);
     return c.json({ ok: false, error: 'Failed to build claim transactions' }, 500);
+  }
+});
+
+// ── Token Launch: Create Metadata ────────────────────────
+
+app.post('/v1/token/create', async (c) => {
+  const body = await c.req.json<{
+    name?: string; symbol?: string; description?: string;
+    imageUrl?: string; website?: string; twitter?: string; telegram?: string;
+  }>().catch(() => ({} as Record<string, undefined>));
+
+  if (!body.name || !body.symbol || !body.description || !body.imageUrl) {
+    return c.json({ ok: false, error: 'Missing required fields: name, symbol, description, imageUrl' }, 400);
+  }
+
+  try {
+    const result = await createTokenInfo(
+      {
+        name: body.name,
+        symbol: body.symbol,
+        description: body.description,
+        imageUrl: body.imageUrl,
+        website: body.website,
+        twitter: body.twitter,
+        telegram: body.telegram,
+      },
+      c.env.BAGS_API_KEY,
+    );
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    console.error('Token create error:', err);
+    return c.json({ ok: false, error: 'Failed to create token metadata' }, 500);
+  }
+});
+
+// ── Token Launch: Fee-Share Config ───────────────────────
+
+app.post('/v1/token/fee-config', async (c) => {
+  const body = await c.req.json<{
+    feeClaimers?: FeeClaimerEntry[];
+    payer?: string;
+  }>().catch(() => ({} as Record<string, undefined>));
+
+  if (!body.payer || !SOLANA_ADDR_RE.test(body.payer)) {
+    return c.json({ ok: false, error: 'Invalid payer wallet address' }, 400);
+  }
+  if (!Array.isArray(body.feeClaimers) || body.feeClaimers.length === 0) {
+    return c.json({ ok: false, error: 'feeClaimers array required (wallet + bps entries)' }, 400);
+  }
+
+  // Validate total bps = 10000
+  const totalBps = body.feeClaimers.reduce((s, e) => s + (e.userBps || 0), 0);
+  if (totalBps !== 10_000) {
+    return c.json({ ok: false, error: `Fee shares must total 10000 bps (100%), got ${totalBps}` }, 400);
+  }
+
+  try {
+    const result = await createFeeShareConfig(
+      { feeClaimers: body.feeClaimers, payer: body.payer },
+      c.env.BAGS_API_KEY,
+    );
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    console.error('Fee config error:', err);
+    return c.json({ ok: false, error: 'Failed to create fee-share config' }, 500);
+  }
+});
+
+// ── Token Launch: Launch Transaction ─────────────────────
+
+app.post('/v1/token/launch', async (c) => {
+  const body = await c.req.json<{
+    tokenMint?: string; launchWallet?: string; metadataUrl?: string;
+    configKey?: string; initialBuyLamports?: number;
+  }>().catch(() => ({} as Record<string, undefined>));
+
+  if (!body.tokenMint || !SOLANA_ADDR_RE.test(body.tokenMint)) {
+    return c.json({ ok: false, error: 'Invalid tokenMint' }, 400);
+  }
+  if (!body.launchWallet || !SOLANA_ADDR_RE.test(body.launchWallet)) {
+    return c.json({ ok: false, error: 'Invalid launchWallet' }, 400);
+  }
+  if (!body.metadataUrl || !body.configKey) {
+    return c.json({ ok: false, error: 'Missing metadataUrl or configKey' }, 400);
+  }
+
+  try {
+    const result = await createLaunchTransaction(
+      {
+        tokenMint: body.tokenMint,
+        launchWallet: body.launchWallet,
+        metadataUrl: body.metadataUrl,
+        configKey: body.configKey,
+        initialBuyLamports: body.initialBuyLamports ?? 0,
+      },
+      c.env.BAGS_API_KEY,
+    );
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    console.error('Launch tx error:', err);
+    return c.json({ ok: false, error: 'Failed to create launch transaction' }, 500);
   }
 });
 

@@ -59,3 +59,76 @@ export async function fetchApiStats(): Promise<ApiStats | null> {
     return null;
   }
 }
+
+// ── Token Launch ─────────────────────────────────────────
+
+export interface TokenInfoResult {
+  tokenMint: string;
+  metadataUrl: string;
+}
+
+export interface CreateTokenParams {
+  name: string;
+  symbol: string;
+  description: string;
+  imageUrl: string;
+  website?: string;
+  twitter?: string;
+  telegram?: string;
+}
+
+export async function createTokenInfo(params: CreateTokenParams): Promise<TokenInfoResult> {
+  const res = await fetch(`${BASE}/token/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  const body: ApiResponse<TokenInfoResult> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to create token');
+  return body.data;
+}
+
+export interface FeeClaimerEntry {
+  user: string;
+  userBps: number;
+}
+
+export interface FeeConfigResult {
+  needsCreation: boolean;
+  transactions: Array<{ tx: string; blockhash: string; lastValidBlockHeight: number }>;
+  meteoraConfigKey: string;
+}
+
+export async function createFeeConfig(feeClaimers: FeeClaimerEntry[], payer: string): Promise<FeeConfigResult> {
+  const res = await fetch(`${BASE}/token/fee-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ feeClaimers, payer }),
+  });
+  const body: ApiResponse<FeeConfigResult> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to create fee config');
+  return body.data;
+}
+
+export interface LaunchTxResult {
+  transaction: string;
+  blockhash: string;
+  lastValidBlockHeight: number;
+}
+
+export async function createLaunchTransaction(params: {
+  tokenMint: string;
+  launchWallet: string;
+  metadataUrl: string;
+  configKey: string;
+  initialBuyLamports: number;
+}): Promise<LaunchTxResult> {
+  const res = await fetch(`${BASE}/token/launch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  const body: ApiResponse<LaunchTxResult> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to create launch transaction');
+  return body.data;
+}
