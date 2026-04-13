@@ -5,6 +5,7 @@ import { fetchTopTokens } from './feed/bags';
 import { fetchClaimablePositions, fetchClaimTransactions } from './fees/bags-fees';
 import { createTokenInfo, createLaunchTransaction, createFeeShareConfig } from './token/launch';
 import type { FeeClaimerEntry } from './token/launch';
+import { scanWallet } from './portfolio/scanner';
 
 export interface Env {
   // Secrets
@@ -338,6 +339,31 @@ app.post('/v1/token/launch', async (c) => {
   } catch (err) {
     console.error('Launch tx error:', err);
     return c.json({ ok: false, error: 'Failed to create launch transaction' }, 500);
+  }
+});
+
+// ── Wallet X-Ray (Portfolio Scanner) ─────────────────────
+
+app.get('/v1/portfolio/:wallet', async (c) => {
+  const wallet = c.req.param('wallet');
+
+  if (!SOLANA_ADDR_RE.test(wallet)) {
+    return c.json({ ok: false, error: 'Invalid Solana wallet address' }, 400);
+  }
+
+  try {
+    const result = await scanWallet(
+      wallet,
+      {
+        HELIUS_API_KEY: c.env.HELIUS_API_KEY,
+        BIRDEYE_API_KEY: c.env.BIRDEYE_API_KEY,
+      },
+      c.env.SENTINEL_KV,
+    );
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    console.error('Wallet X-Ray error:', err);
+    return c.json({ ok: false, error: 'Failed to scan wallet' }, 500);
   }
 });
 

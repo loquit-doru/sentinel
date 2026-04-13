@@ -3,8 +3,7 @@ import type { TokenFeedItem } from '../../shared/types';
 import { SearchBar } from './components/SearchBar';
 import { FeedPage } from './pages/FeedPage';
 import { RiskDetailPage } from './pages/RiskDetailPage';
-import { FeePage } from './pages/FeePage';
-import { TokenLaunchPage } from './pages/TokenLaunchPage';
+import { WalletXRayPage } from './pages/WalletXRayPage';
 import { LandingPage } from './pages/LandingPage';
 import { fetchTokenFeed } from './api';
 
@@ -12,8 +11,7 @@ type View =
   | { page: 'landing' }
   | { page: 'feed' }
   | { page: 'risk'; mint: string }
-  | { page: 'fees' }
-  | { page: 'launch' };
+  | { page: 'xray' };
 
 export function App() {
   const [view, setView] = useState<View>({ page: 'landing' });
@@ -41,8 +39,7 @@ export function App() {
 
   const handleSearch = (mint: string) => setView({ page: 'risk', mint });
   const goFeed = () => setView({ page: 'feed' });
-  const goFees = () => setView({ page: 'fees' });
-  const goLaunch = () => setView({ page: 'launch' });
+  const goXRay = () => setView({ page: 'xray' });
   const goLanding = () => setView({ page: 'landing' });
 
   // Landing page is a full-screen standalone view
@@ -50,7 +47,7 @@ export function App() {
     return <LandingPage onLaunch={goFeed} />;
   }
 
-  const activeTab = view.page === 'fees' ? 'fees' : view.page === 'launch' ? 'launch' : 'discover';
+  const activeTab = view.page === 'xray' ? 'xray' : 'discover';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -96,28 +93,15 @@ export function App() {
           )}
         </button>
         <button
-          onClick={goFees}
+          onClick={goXRay}
           className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-            activeTab === 'fees'
+            activeTab === 'xray'
               ? 'text-sentinel-accent'
               : 'text-gray-500 hover:text-gray-300'
           }`}
         >
-          Fee Optimizer
-          {activeTab === 'fees' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-sentinel-accent rounded-full" />
-          )}
-        </button>
-        <button
-          onClick={goLaunch}
-          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-            activeTab === 'launch'
-              ? 'text-sentinel-accent'
-              : 'text-gray-500 hover:text-gray-300'
-          }`}
-        >
-          Launch Token
-          {activeTab === 'launch' && (
+          Wallet X-Ray
+          {activeTab === 'xray' && (
             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-sentinel-accent rounded-full" />
           )}
         </button>
@@ -146,11 +130,8 @@ export function App() {
         {view.page === 'risk' && (
           <RiskDetailPage mint={view.mint} onBack={goFeed} />
         )}
-        {view.page === 'fees' && (
-          <FeePage />
-        )}
-        {view.page === 'launch' && (
-          <TokenLaunchPage />
+        {view.page === 'xray' && (
+          <WalletXRayPage onViewToken={handleSearch} />
         )}
       </main>
 

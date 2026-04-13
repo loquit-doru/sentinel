@@ -3,6 +3,39 @@ import type { RiskScore, TokenFeedItem, FeeSnapshot, ApiResponse } from '../../s
 const API_URL = import.meta.env.VITE_API_URL ?? 'https://sentinel-api.apiworkersdev.workers.dev';
 const BASE = `${API_URL}/v1`;
 
+// ── Wallet X-Ray ─────────────────────────────────────────
+
+export interface XRayToken {
+  mint: string;
+  amount: number;
+  decimals: number;
+  score: number | null;
+  tier: string | null;
+  breakdown: Record<string, number> | null;
+}
+
+export interface XRayResult {
+  wallet: string;
+  holdings: XRayToken[];
+  portfolioHealth: number;
+  flaggedCount: number;
+  scannedAt: number;
+}
+
+export async function fetchWalletXRay(wallet: string): Promise<XRayResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/portfolio/${wallet}`);
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
+  const body: ApiResponse<XRayResult> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to scan wallet');
+  return body.data;
+}
+
+// ── Risk ─────────────────────────────────────────────────
+
 export async function fetchRiskScore(mint: string): Promise<RiskScore> {
   let res: Response;
   try {
