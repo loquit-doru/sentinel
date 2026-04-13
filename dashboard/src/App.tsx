@@ -4,15 +4,17 @@ import { SearchBar } from './components/SearchBar';
 import { FeedPage } from './pages/FeedPage';
 import { RiskDetailPage } from './pages/RiskDetailPage';
 import { FeePage } from './pages/FeePage';
+import { LandingPage } from './pages/LandingPage';
 import { fetchTokenFeed } from './api';
 
 type View =
+  | { page: 'landing' }
   | { page: 'feed' }
   | { page: 'risk'; mint: string }
   | { page: 'fees' };
 
 export function App() {
-  const [view, setView] = useState<View>({ page: 'feed' });
+  const [view, setView] = useState<View>({ page: 'landing' });
   const [tokens, setTokens] = useState<TokenFeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState(false);
@@ -38,6 +40,12 @@ export function App() {
   const handleSearch = (mint: string) => setView({ page: 'risk', mint });
   const goFeed = () => setView({ page: 'feed' });
   const goFees = () => setView({ page: 'fees' });
+  const goLanding = () => setView({ page: 'landing' });
+
+  // Landing page is a full-screen standalone view
+  if (view.page === 'landing') {
+    return <LandingPage onLaunch={goFeed} />;
+  }
 
   const activeTab = view.page === 'fees' ? 'fees' : 'discover';
 
