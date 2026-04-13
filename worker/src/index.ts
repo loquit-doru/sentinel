@@ -277,8 +277,13 @@ app.post('/v1/token/fee-config', async (c) => {
     return c.json({ ok: false, error: 'feeClaimers array required (wallet + bps entries)' }, 400);
   }
 
-  // Validate total bps = 10000 (use Math.round to avoid floating-point drift)
-  const totalBps = Math.round(body.feeClaimers.reduce((s, e) => s + (e.userBps || 0), 0));
+  // Validate each entry has integer bps, then total = 10000
+  for (const entry of body.feeClaimers) {
+    if (!Number.isInteger(entry.userBps) || entry.userBps < 0) {
+      return c.json({ ok: false, error: `Invalid bps value: ${entry.userBps} (must be non-negative integer)` }, 400);
+    }
+  }
+  const totalBps = body.feeClaimers.reduce((s, e) => s + e.userBps, 0);
   if (totalBps !== 10_000) {
     return c.json({ ok: false, error: `Fee shares must total 10000 bps (100%), got ${totalBps}` }, 400);
   }

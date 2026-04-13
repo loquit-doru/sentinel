@@ -12,6 +12,7 @@ import {
 } from '../api';
 
 const HELIUS_RPC = import.meta.env.VITE_HELIUS_RPC_URL ?? 'https://api.mainnet-beta.solana.com';
+// NOTE: RPC URL configured via env var VITE_HELIUS_RPC_URL. Never embed API keys in client code.
 const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 type Step = 'details' | 'fees' | 'review' | 'launching' | 'done';

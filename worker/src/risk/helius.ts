@@ -1,4 +1,5 @@
 import type { HeliusTokenAccount } from './types';
+import { HELIUS_RPC_BASE } from '../../../shared/constants';
 
 export async function fetchTopHolders(
   mint: string,

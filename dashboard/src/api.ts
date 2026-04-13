@@ -4,21 +4,36 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'https://sentinel-api.apiworkers
 const BASE = `${API_URL}/v1`;
 
 export async function fetchRiskScore(mint: string): Promise<RiskScore> {
-  const res = await fetch(`${BASE}/risk/${mint}`);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/risk/${mint}`);
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
   const body: ApiResponse<RiskScore> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Unknown error');
   return body.data;
 }
 
 export async function fetchTokenFeed(): Promise<TokenFeedItem[]> {
-  const res = await fetch(`${BASE}/tokens/feed`);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/tokens/feed`);
+  } catch {
+    return [];
+  }
   const body: ApiResponse<TokenFeedItem[]> = await res.json();
   if (!body.ok || !body.data) return [];
   return body.data;
 }
 
 export async function fetchFeeSnapshot(wallet: string): Promise<FeeSnapshot> {
-  const res = await fetch(`${BASE}/fees/${wallet}`);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/fees/${wallet}`);
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
   const body: ApiResponse<FeeSnapshot> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Unknown error');
   return body.data;
@@ -33,11 +48,16 @@ export interface ClaimTxData {
 }
 
 export async function fetchClaimTransactions(wallet: string, tokenMint: string): Promise<ClaimTxData> {
-  const res = await fetch(`${BASE}/fees/claim`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallet, tokenMint }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/fees/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet, tokenMint }),
+    });
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
   const body: ApiResponse<ClaimTxData> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to build claim transactions');
   return body.data;
@@ -78,11 +98,16 @@ export interface CreateTokenParams {
 }
 
 export async function createTokenInfo(params: CreateTokenParams): Promise<TokenInfoResult> {
-  const res = await fetch(`${BASE}/token/create`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/token/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
   const body: ApiResponse<TokenInfoResult> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to create token');
   return body.data;
@@ -100,11 +125,16 @@ export interface FeeConfigResult {
 }
 
 export async function createFeeConfig(feeClaimers: FeeClaimerEntry[], payer: string): Promise<FeeConfigResult> {
-  const res = await fetch(`${BASE}/token/fee-config`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ feeClaimers, payer }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/token/fee-config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feeClaimers, payer }),
+    });
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
   const body: ApiResponse<FeeConfigResult> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to create fee config');
   return body.data;
@@ -123,11 +153,16 @@ export async function createLaunchTransaction(params: {
   configKey: string;
   initialBuyLamports: number;
 }): Promise<LaunchTxResult> {
-  const res = await fetch(`${BASE}/token/launch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/token/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+  } catch (err) {
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
+  }
   const body: ApiResponse<LaunchTxResult> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to create launch transaction');
   return body.data;
