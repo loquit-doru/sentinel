@@ -21,6 +21,13 @@ const TIER_RING: Record<RiskTier, string> = {
   rug: 'stroke-sentinel-rug',
 };
 
+const TIER_GLOW: Record<RiskTier, string> = {
+  safe: 'drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]',
+  caution: 'drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]',
+  danger: 'drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]',
+  rug: 'drop-shadow-[0_0_8px_rgba(153,27,27,0.3)]',
+};
+
 export function TierBadge({ tier }: { tier: RiskTier }) {
   return (
     <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold uppercase rounded-full border ${TIER_BG[tier]} ${TIER_COLORS[tier]}`}>
@@ -35,7 +42,7 @@ export function ScoreGauge({ score, tier, size = 120 }: { score: number; tier: R
   const progress = (score / 100) * circumference;
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className={`relative inline-flex items-center justify-center ${TIER_GLOW[tier]}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2} cy={size / 2} r={radius}
@@ -44,10 +51,10 @@ export function ScoreGauge({ score, tier, size = 120 }: { score: number; tier: R
         <circle
           cx={size / 2} cy={size / 2} r={radius}
           fill="none" strokeWidth="8" strokeLinecap="round"
-          className={TIER_RING[tier]}
+          className={`${TIER_RING[tier]} animate-gauge-fill`}
           strokeDasharray={circumference}
           strokeDashoffset={circumference - progress}
-          style={{ transition: 'stroke-dashoffset 0.6s ease-out' }}
+          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
         />
       </svg>
       <div className="absolute flex flex-col items-center">
@@ -63,15 +70,15 @@ export function BreakdownBar({ label, value }: { label: string; value: number })
   const color = pct >= 70 ? 'bg-sentinel-safe' : pct >= 40 ? 'bg-sentinel-caution' : 'bg-sentinel-danger';
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex justify-between text-xs">
         <span className="text-gray-400">{label}</span>
-        <span className="text-gray-300 font-mono">{pct}</span>
+        <span className={`font-mono font-medium ${pct >= 70 ? 'text-sentinel-safe' : pct >= 40 ? 'text-sentinel-caution' : 'text-sentinel-danger'}`}>{pct}</span>
       </div>
-      <div className="w-full h-1.5 bg-sentinel-border rounded overflow-hidden">
+      <div className="w-full h-1.5 bg-sentinel-border/60 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded ${color}`}
-          style={{ width: `${pct}%`, transition: 'width 0.4s ease-out' }}
+          className={`h-full rounded-full ${color} animate-bar-fill`}
+          style={{ width: `${pct}%`, transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
         />
       </div>
     </div>
