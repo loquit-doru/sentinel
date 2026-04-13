@@ -1,6 +1,5 @@
 import type { TokenFeedItem } from '../../../shared/types';
-
-const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
+import { BAGS_API_BASE } from '../../../shared/constants';
 
 /** Raw Bags API response shape for top tokens by lifetime fees */
 interface BagsLeaderboardItem {

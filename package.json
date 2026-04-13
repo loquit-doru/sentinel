@@ -6,7 +6,8 @@
   "workspaces": [
     "worker",
     "dashboard",
-    "shared"
+    "shared",
+    "mcp-server"
   ],
   "scripts": {
     "check": "npm --workspaces run check",

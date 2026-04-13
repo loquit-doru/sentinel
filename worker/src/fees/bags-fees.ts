@@ -1,6 +1,5 @@
 import type { FeeSnapshot, ClaimablePosition } from '../../../shared/types';
-
-const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
+import { BAGS_API_BASE } from '../../../shared/constants';
 
 /**
  * Raw shape returned by Bags claimable-positions API.

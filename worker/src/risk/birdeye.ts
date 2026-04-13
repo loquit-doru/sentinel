@@ -1,6 +1,5 @@
 import type { BirdeyeTokenSecurity, BirdeyeTokenOverview } from './types';
-
-const BIRDEYE_BASE = 'https://public-api.birdeye.so';
+import { BIRDEYE_API_BASE as BIRDEYE_BASE } from '../../../shared/constants';
 
 export async function fetchBirdeyeSecurity(
   mint: string,

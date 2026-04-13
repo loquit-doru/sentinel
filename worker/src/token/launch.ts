@@ -2,8 +2,7 @@
  * Bags REST API integration for token launch + fee-share config.
  * All transactions are returned unsigned (base58) — client signs with wallet adapter.
  */
-
-const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
+import { BAGS_API_BASE } from '../../../shared/constants';
 
 // ── Types ────────────────────────────────────────────────
 

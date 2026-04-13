@@ -1,6 +1,5 @@
 import type { RugCheckReport } from './types';
-
-const RUGCHECK_BASE = 'https://api.rugcheck.xyz/v1';
+import { RUGCHECK_API_BASE as RUGCHECK_BASE } from '../../../shared/constants';
 
 export async function fetchRugCheckReport(mint: string): Promise<RugCheckReport | null> {
   try {

@@ -11,7 +11,7 @@ import {
   type FeeClaimerEntry,
 } from '../api';
 
-const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=2aa0a622-7e63-41c8-8b96-14b8b9b667eb';
+const HELIUS_RPC = import.meta.env.VITE_HELIUS_RPC_URL ?? 'https://api.mainnet-beta.solana.com';
 const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 type Step = 'details' | 'fees' | 'review' | 'launching' | 'done';

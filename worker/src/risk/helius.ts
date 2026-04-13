@@ -5,7 +5,7 @@ export async function fetchTopHolders(
   apiKey: string,
 ): Promise<HeliusTokenAccount[]> {
   try {
-    const res = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
+    const res = await fetch(`${HELIUS_RPC_BASE}/?api-key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

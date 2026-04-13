@@ -61,6 +61,7 @@ Discovers unclaimed creator fees across all tokens, builds claim transactions, a
 sentinel/
 ├── worker/      → Cloudflare Workers + Hono (API backend)
 ├── dashboard/   → React 18 + Vite + TailwindCSS
+├── mcp-server/  → MCP Server for Claude Skills
 └── shared/      → TypeScript types + constants
 ```
 
@@ -86,6 +87,38 @@ sentinel/
 - **Risk Data**: RugCheck API + Birdeye API + Helius DAS
 - **Cache**: Cloudflare KV (60s risk, 30s feed/fees)
 - **Analytics**: Plausible + internal KV tracking
+
+---
+
+## Claude Skills (MCP Server)
+
+Sentinel exposes its risk intelligence as Claude tools via the [Model Context Protocol](https://modelcontextprotocol.io).
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_risk_score` | Risk score (0-100) for any Solana token |
+| `get_trending_tokens` | Top tokens by lifetime fees on Bags |
+| `get_claimable_fees` | Unclaimed fees for a wallet |
+| `compare_tokens` | Side-by-side risk comparison (2-5 tokens) |
+
+### Setup in Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "sentinel": {
+      "command": "node",
+      "args": ["C:/Users/YOU/sentinel/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Then ask Claude: *"How risky is token DezXAZ...B263?"* or *"Show me trending tokens on Bags"*
 
 ---
 

@@ -197,7 +197,12 @@ app.get('/v1/fees/:wallet', async (c) => {
 // ── Claim Transactions ───────────────────────────────────
 
 app.post('/v1/fees/claim', async (c) => {
-  const body = await c.req.json<{ wallet?: string; tokenMint?: string }>().catch(() => ({} as { wallet?: string; tokenMint?: string }));
+  let body: { wallet?: string; tokenMint?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: 'Invalid JSON body' }, 400);
+  }
 
   if (!body.wallet || !SOLANA_ADDR_RE.test(body.wallet)) {
     return c.json({ ok: false, error: 'Invalid wallet address' }, 400);
@@ -218,10 +223,15 @@ app.post('/v1/fees/claim', async (c) => {
 // ── Token Launch: Create Metadata ────────────────────────
 
 app.post('/v1/token/create', async (c) => {
-  const body = await c.req.json<{
+  let body: {
     name?: string; symbol?: string; description?: string;
     imageUrl?: string; website?: string; twitter?: string; telegram?: string;
-  }>().catch(() => ({} as Record<string, undefined>));
+  };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: 'Invalid JSON body' }, 400);
+  }
 
   if (!body.name || !body.symbol || !body.description || !body.imageUrl) {
     return c.json({ ok: false, error: 'Missing required fields: name, symbol, description, imageUrl' }, 400);
@@ -250,10 +260,15 @@ app.post('/v1/token/create', async (c) => {
 // ── Token Launch: Fee-Share Config ───────────────────────
 
 app.post('/v1/token/fee-config', async (c) => {
-  const body = await c.req.json<{
+  let body: {
     feeClaimers?: FeeClaimerEntry[];
     payer?: string;
-  }>().catch(() => ({} as Record<string, undefined>));
+  };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: 'Invalid JSON body' }, 400);
+  }
 
   if (!body.payer || !SOLANA_ADDR_RE.test(body.payer)) {
     return c.json({ ok: false, error: 'Invalid payer wallet address' }, 400);
@@ -262,8 +277,8 @@ app.post('/v1/token/fee-config', async (c) => {
     return c.json({ ok: false, error: 'feeClaimers array required (wallet + bps entries)' }, 400);
   }
 
-  // Validate total bps = 10000
-  const totalBps = body.feeClaimers.reduce((s, e) => s + (e.userBps || 0), 0);
+  // Validate total bps = 10000 (use Math.round to avoid floating-point drift)
+  const totalBps = Math.round(body.feeClaimers.reduce((s, e) => s + (e.userBps || 0), 0));
   if (totalBps !== 10_000) {
     return c.json({ ok: false, error: `Fee shares must total 10000 bps (100%), got ${totalBps}` }, 400);
   }
@@ -283,10 +298,15 @@ app.post('/v1/token/fee-config', async (c) => {
 // ── Token Launch: Launch Transaction ─────────────────────
 
 app.post('/v1/token/launch', async (c) => {
-  const body = await c.req.json<{
+  let body: {
     tokenMint?: string; launchWallet?: string; metadataUrl?: string;
     configKey?: string; initialBuyLamports?: number;
-  }>().catch(() => ({} as Record<string, undefined>));
+  };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: 'Invalid JSON body' }, 400);
+  }
 
   if (!body.tokenMint || !SOLANA_ADDR_RE.test(body.tokenMint)) {
     return c.json({ ok: false, error: 'Invalid tokenMint' }, 400);

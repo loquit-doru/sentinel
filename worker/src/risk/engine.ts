@@ -1,15 +1,9 @@
-import { RISK_WEIGHTS, TIER_SAFE_MIN, TIER_CAUTION_MIN, TIER_DANGER_MIN } from '../../../shared/constants';
-import type { RiskScore, RiskBreakdown, RiskTier } from '../../../shared/types';
+import { RISK_WEIGHTS } from '../../../shared/constants';
+import type { RiskScore, RiskBreakdown } from '../../../shared/types';
+import { tierFromScore } from '../../../shared/types';
 import { fetchRugCheckReport, analyzeRugCheck } from './rugcheck';
 import { fetchBirdeyeOverview, analyzeBirdeye } from './birdeye';
 import { fetchTopHolders, analyzeHeliusHolders } from './helius';
-
-function tierFromScore(score: number): RiskTier {
-  if (score >= TIER_SAFE_MIN) return 'safe';
-  if (score >= TIER_CAUTION_MIN) return 'caution';
-  if (score >= TIER_DANGER_MIN) return 'danger';
-  return 'rug';
-}
 
 export interface EngineEnv {
   HELIUS_API_KEY?: string;
