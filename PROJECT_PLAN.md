@@ -27,14 +27,14 @@ AI-powered risk score 0-100 for any token on Bags.
 
 | Component | Source | Status |
 |-----------|--------|--------|
-| RugCheck API integration (honeypot, LP lock, mint authority) | New | ⬜ |
-| Helius DAS (holder distribution, top holders %, creator wallet) | New | ⬜ |
-| Birdeye API (volume, FDV, liquidity depth, price history) | New | ⬜ |
-| Bags SDK state (lifetime fees, creator info, leaderboard rank) | New | ⬜ |
-| Scoring algorithm (weighted multi-signal → 0-100) | Port from apix402 | ⬜ |
-| Risk tier classification (Safe / Caution / Danger / Rug) | New | ⬜ |
-| KV cache (60s TTL per token) | Pattern from apix402 | ⬜ |
-| API endpoint: `GET /v1/risk/:mint` | New | ⬜ |
+| RugCheck API integration (honeypot, LP lock, mint authority) | New | ✅ |
+| Helius DAS (holder distribution, top holders %, creator wallet) | New | ✅ (needs API key) |
+| Birdeye API (volume, FDV, liquidity depth, price history) | New | ✅ (needs API key) |
+| Bags SDK state (lifetime fees, creator info, leaderboard rank) | New | ✅ (needs API key) |
+| Scoring algorithm (weighted multi-signal → 0-100) | Port from apix402 | ✅ |
+| Risk tier classification (Safe / Caution / Danger / Rug) | New | ✅ |
+| KV cache (60s TTL per token) | Pattern from apix402 | ✅ |
+| API endpoint: `GET /v1/risk/:mint` | New | ✅ |
 
 ### Pillar 2 — Auto Fee Optimizer
 Agent that claims + compounds fees for creators automatically.
@@ -151,37 +151,37 @@ Agent that claims + compounds fees for creators automatically.
 ## 6. CALENDAR (50 zile: 13 Apr — 2 Jun 2026)
 
 ### W1: Apr 13-20 — FOUNDATION + BAGS NATIVE
-- [ ] Repo setup (monorepo: `worker/`, `dashboard/`, `shared/`)
-- [ ] `npm init`, TypeScript strict, Hono, wrangler.toml
-- [ ] Install + test `@bagsfm/bags-sdk` v1.3.7
+- [x] Repo setup (monorepo: `worker/`, `dashboard/`, `shared/`)
+- [x] `npm init`, TypeScript strict, Hono, wrangler.toml
+- [x] Install + test `@bagsfm/bags-sdk` v1.3.7
 - [ ] Bags API key de la dev.bags.fm
 - [ ] Helius free tier RPC + API key
 - [ ] **Submit pe bags.fm/apply** (AI Agents, "no coin yet")
 - [ ] Partner config exploratory (`sdk.partner`, `sdk.config`)
-- [ ] Basic token feed endpoint (list recent launches via Bags API)
-- [ ] RugCheck API: first call, understand response schema
+- [x] Basic token feed endpoint (list recent launches via Bags API)
+- [x] RugCheck API: first call, understand response schema
 - [ ] Birdeye API: first call, get token data
-- [ ] **Deliverable**: API live pe CF Workers, token feed funcțional
+- [x] **Deliverable**: API live pe CF Workers, risk scoring funcțional
 
 ### W2: Apr 21-27 — RISK ENGINE (core algorithm)
-- [ ] RugCheck integration complet (honeypot, LP lock, mint authority, freeze)
+- [x] RugCheck integration complet (honeypot, LP lock, mint authority, freeze)
 - [ ] Helius DAS integration (holder count, top 10 holders %, creator wallet)
 - [ ] Birdeye integration (24h volume, FDV, liquidity depth, price change)
 - [ ] Bags SDK state (lifetime fees, creator info)
-- [ ] Scoring algorithm v1 (weighted signals → 0-100)
-- [ ] Risk tiers: Safe (70-100), Caution (40-69), Danger (10-39), Rug (0-9)
-- [ ] KV cache layer (60s TTL)
-- [ ] `GET /v1/risk/:mint` endpoint live
+- [x] Scoring algorithm v1 (weighted signals → 0-100)
+- [x] Risk tiers: Safe (70-100), Caution (40-69), Danger (10-39), Rug (0-9)
+- [x] KV cache layer (60s TTL)
+- [x] `GET /v1/risk/:mint` endpoint live
 - [ ] Unit tests for scoring edge cases
 - [ ] **Deliverable**: Risk score API funcțional, cache, tested
 
 ### W3: Apr 28 — May 4 — DASHBOARD + DISCOVERY
-- [ ] React project setup (Vite + Tailwind + React 18)
-- [ ] Discovery feed page (token list, sorted by volume/risk/new)
-- [ ] Token detail page (risk score gauge, breakdown per factor)
-- [ ] Search bar (by token name, mint address)
+- [x] React project setup (Vite + Tailwind + React 18)
+- [x] Discovery feed page (token list, sorted by volume/risk/new)
+- [x] Token detail page (risk score gauge, breakdown per factor)
+- [x] Search bar (by token name, mint address)
 - [ ] Filter/sort (risk level, volume, age)
-- [ ] Responsive design (mobile-first — Bags users are mobile)
+- [x] Responsive design (mobile-first — Bags users are mobile)
 - [ ] Deploy dashboard pe Cloudflare Pages
 - [ ] **Deliverable**: Dashboard live cu discovery + risk scores
 

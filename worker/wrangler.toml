@@ -12,9 +12,10 @@ compatibility_date = "2025-04-01"
 [observability]
 enabled = true
 
-# [[kv_namespaces]]
-# binding = "RISK_CACHE"
-# id = ""
+[[kv_namespaces]]
+binding = "SENTINEL_KV"
+id = "placeholder"             # npx wrangler kv namespace create SENTINEL_KV
+preview_id = "placeholder"     # npx wrangler kv namespace create SENTINEL_KV --preview
 
 # [[d1_databases]]
 # binding = "DB"

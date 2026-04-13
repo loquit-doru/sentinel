@@ -1,59 +1,124 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { computeRiskScore } from './risk/engine';
+import { fetchTopTokens } from './feed/bags';
 
 export interface Env {
-  // KV
-  // RISK_CACHE: KVNamespace;
-  // D1
-  // DB: D1Database;
   // Secrets
-  // RUGCHECK_API_URL: string;
-  // HELIUS_API_KEY: string;
-  // BIRDEYE_API_KEY: string;
-  // BAGS_API_KEY: string;
-  // TELEGRAM_BOT_TOKEN: string;
+  HELIUS_API_KEY?: string;
+  BIRDEYE_API_KEY?: string;
+  BAGS_API_KEY?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  // KV
+  SENTINEL_KV?: KVNamespace;
 }
+
+const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.use('/*', cors());
 
-// Health check
+// ── Health ───────────────────────────────────────────────
+
 app.get('/health', (c) => {
-  return c.json({ status: 'ok', service: 'sentinel-api', version: '0.1.0' });
+  return c.json({
+    status: 'ok',
+    service: 'sentinel-api',
+    version: '0.1.0',
+    pillars: ['risk-scoring', 'fee-optimizer'],
+  });
 });
 
-// Risk score endpoint (stub)
+// ── Risk Score ───────────────────────────────────────────
+
 app.get('/v1/risk/:mint', async (c) => {
   const mint = c.req.param('mint');
-  // TODO W2: implement real scoring
-  return c.json({
-    mint,
-    score: null,
-    tier: null,
-    message: 'Risk engine not yet implemented',
-  }, 501);
+
+  if (!SOLANA_ADDR_RE.test(mint)) {
+    return c.json({ ok: false, error: 'Invalid Solana mint address' }, 400);
+  }
+
+  const kv = c.env.SENTINEL_KV;
+
+  // Check KV cache
+  if (kv) {
+    const cached = await kv.get(`risk:${mint}`, 'json');
+    if (cached) {
+      return c.json({ ok: true, data: { ...(cached as object), cached: true } }, 200, {
+        'x-cache': 'HIT',
+      });
+    }
+  }
+
+  try {
+    const score = await computeRiskScore(mint, {
+      HELIUS_API_KEY: c.env.HELIUS_API_KEY,
+      BIRDEYE_API_KEY: c.env.BIRDEYE_API_KEY,
+    });
+
+    // Store in KV cache (60s TTL)
+    if (kv) {
+      c.executionCtx.waitUntil(
+        kv.put(`risk:${mint}`, JSON.stringify(score), { expirationTtl: 60 }),
+      );
+    }
+
+    return c.json({ ok: true, data: score }, 200, { 'x-cache': 'MISS' });
+  } catch (err) {
+    console.error('Risk score error:', err);
+    return c.json({ ok: false, error: 'Failed to compute risk score' }, 500);
+  }
 });
 
-// Fee positions endpoint (stub)
+// ── Fee Positions (stub — W4) ────────────────────────────
+
 app.get('/v1/fees/:wallet', async (c) => {
   const wallet = c.req.param('wallet');
-  // TODO W4: implement fee optimizer
+
+  if (!SOLANA_ADDR_RE.test(wallet)) {
+    return c.json({ ok: false, error: 'Invalid Solana wallet address' }, 400);
+  }
+
+  // TODO W4: implement via Bags SDK fee.*
   return c.json({
-    wallet,
-    claimable: [],
-    totalClaimable: 0,
-    message: 'Fee optimizer not yet implemented',
-  }, 501);
+    ok: true,
+    data: {
+      wallet,
+      positions: [],
+      totalClaimableUsd: 0,
+      message: 'Fee optimizer coming in W4',
+    },
+  });
 });
 
-// Token feed endpoint (stub)
+// ── Token Feed ───────────────────────────────────────────
+
 app.get('/v1/tokens/feed', async (c) => {
-  // TODO W1: implement via Bags SDK state
-  return c.json({
-    tokens: [],
-    message: 'Token feed not yet implemented',
-  }, 501);
+  const kv = c.env.SENTINEL_KV;
+
+  // Check KV cache (30s TTL for feed)
+  if (kv) {
+    const cached = await kv.get('feed:top', 'json');
+    if (cached) {
+      return c.json({ ok: true, data: cached }, 200, { 'x-cache': 'HIT' });
+    }
+  }
+
+  try {
+    const tokens = await fetchTopTokens(c.env.BAGS_API_KEY);
+
+    if (kv) {
+      c.executionCtx.waitUntil(
+        kv.put('feed:top', JSON.stringify(tokens), { expirationTtl: 30 }),
+      );
+    }
+
+    return c.json({ ok: true, data: tokens }, 200, { 'x-cache': 'MISS' });
+  } catch (err) {
+    console.error('Token feed error:', err);
+    return c.json({ ok: false, error: 'Failed to fetch token feed' }, 500);
+  }
 });
 
 export default app;
