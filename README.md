@@ -4,6 +4,8 @@
 
 AI risk intelligence + auto fee optimizer for [Bags](https://bags.fm) creators. Built for the [Bags Hackathon](https://bags.fm/hackathon) ($4M funding) — Track: **AI Agents**.
 
+**$SENT**: [`Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`](https://bags.fm/token/Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS) — launched on Bags
+
 [![Live Dashboard](https://img.shields.io/badge/Dashboard-Live-06b6d4?style=flat-square)](https://sentinel-dashboard-3uy.pages.dev)
 [![API](https://img.shields.io/badge/API-Live-22c55e?style=flat-square)](https://sentinel-api.apiworkersdev.workers.dev/health)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square)](https://typescriptlang.org)

@@ -35,3 +35,7 @@ export const TIER_DANGER_MIN = 10;
 
 export const BAGS_RATE_LIMIT = 1000;    // req/hour
 export const HELIUS_FREE_CREDITS = 50_000; // per month
+
+// ── $SENT Token ──────────────────────────────────────────
+
+export const SENT_MINT = 'Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS';

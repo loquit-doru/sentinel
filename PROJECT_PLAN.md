@@ -11,6 +11,7 @@
 |-------|-------|
 | **Name** | Sentinel |
 | **Ticker** | $SENT |
+| **Mint** | `Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS` |
 | **Tagline** | Don't trade blind. |
 | **Track** | AI Agents |
 | **Audience** | Creators first, traders second |
@@ -71,7 +72,7 @@ Agent that claims + compounds fees for creators automatically.
 - ❌ Social trading complex (leaderboards, wallet tracking advanced)
 - ❌ AI trading agent autonom (noise — every 3rd project says "AI trading")
 - ❌ 4 pillars simultane (2 done 100% > 4 done 50%)
-- ❌ Token launch before product is ready
+- ~~❌ Token launch before product is ready~~ → ✅ $SENT launched
 
 ---
 
@@ -107,7 +108,7 @@ Agent that claims + compounds fees for creators automatically.
 - [ ] Sentinel claim-ează partner fees + execută logica (compound/redistribute)
 
 ### 4.3 Token ($SENT)
-- [ ] Launch pe Bags via `sdk.tokenLaunch` (la final, NU la început)
+- [x] Launch pe Bags — mint: `Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`
 - [ ] Fee share config: 50% creator (noi), 30% holders, 20% dev fund
 - [ ] Token utility: gate premium features (auto-compound, priority alerts)
 
@@ -210,7 +211,7 @@ Agent that claims + compounds fees for creators automatically.
 - [ ] **Deliverable**: Alerts funcționale, dashboard polished
 
 ### W6: May 19-25 — TOKEN LAUNCH + INTEGRATIONS
-- [ ] $SENT token launch pe Bags via `sdk.tokenLaunch`
+- [x] $SENT token launch pe Bags — `Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`
 - [ ] Fee share config: 50% creator, 30% holders, 20% dev
 - [ ] Token-gated premium features (auto-compound, priority alerts)
 - [ ] MCP Server (optional — risk score query tool for Claude)
