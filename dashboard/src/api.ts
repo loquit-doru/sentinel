@@ -1,4 +1,4 @@
-import type { RiskScore, TokenFeedItem, ApiResponse } from '../../shared/types';
+import type { RiskScore, TokenFeedItem, FeeSnapshot, ApiResponse } from '../../shared/types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'https://sentinel-api.apiworkersdev.workers.dev';
 const BASE = `${API_URL}/v1`;
@@ -14,5 +14,12 @@ export async function fetchTokenFeed(): Promise<TokenFeedItem[]> {
   const res = await fetch(`${BASE}/tokens/feed`);
   const body: ApiResponse<TokenFeedItem[]> = await res.json();
   if (!body.ok || !body.data) return [];
+  return body.data;
+}
+
+export async function fetchFeeSnapshot(wallet: string): Promise<FeeSnapshot> {
+  const res = await fetch(`${BASE}/fees/${wallet}`);
+  const body: ApiResponse<FeeSnapshot> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Unknown error');
   return body.data;
 }

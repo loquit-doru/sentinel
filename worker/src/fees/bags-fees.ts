@@ -1,0 +1,81 @@
+import type { FeeSnapshot, ClaimablePosition } from '../../../shared/types';
+
+const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1';
+
+/**
+ * Raw shape returned by Bags claimable-positions API.
+ * We only type the fields we actually need.
+ */
+interface BagsClaimableRaw {
+  baseMint: string;
+  tokenName?: string;
+  tokenSymbol?: string;
+  tokenIcon?: string;
+  totalClaimableLamportsUserShare: string;   // lamports as string
+  totalClaimableUsdUserShare?: number;
+  isMigrated?: boolean;
+  virtualPool?: string;
+  feeType?: string;
+}
+
+interface BagsClaimableResponse {
+  success: boolean;
+  response: BagsClaimableRaw[];
+}
+
+const LAMPORTS_PER_SOL = 1_000_000_000;
+
+export async function fetchClaimablePositions(
+  wallet: string,
+  apiKey?: string,
+): Promise<FeeSnapshot> {
+  const headers: Record<string, string> = {};
+  if (apiKey) headers['x-api-key'] = apiKey;
+
+  const url = `${BAGS_API_BASE}/token-launch/claimable-positions?wallet=${wallet}`;
+  const res = await fetch(url, {
+    headers,
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!res.ok) {
+    console.error(`Bags fees API ${res.status}: ${res.statusText}`);
+    return { wallet, positions: [], totalClaimableUsd: 0, lastUpdated: Date.now() };
+  }
+
+  const body = await res.json() as BagsClaimableResponse;
+  if (!body.success || !Array.isArray(body.response)) {
+    console.error('Bags fees API: unexpected format');
+    return { wallet, positions: [], totalClaimableUsd: 0, lastUpdated: Date.now() };
+  }
+
+  let totalClaimableUsd = 0;
+
+  const positions: ClaimablePosition[] = body.response
+    .filter((p) => {
+      const lamports = parseInt(p.totalClaimableLamportsUserShare, 10);
+      return !isNaN(lamports) && lamports > 0;
+    })
+    .map((p): ClaimablePosition => {
+      const lamports = parseInt(p.totalClaimableLamportsUserShare, 10);
+      const solAmount = lamports / LAMPORTS_PER_SOL;
+      const usdAmount = p.totalClaimableUsdUserShare ?? 0;
+      totalClaimableUsd += usdAmount;
+
+      return {
+        tokenMint: p.baseMint,
+        tokenName: p.tokenName ?? 'Unknown',
+        tokenSymbol: p.tokenSymbol ?? '???',
+        claimableAmount: solAmount,
+        claimableUsd: usdAmount,
+        source: p.isMigrated ? 'fee-share-v2' : 'fee-share-v1',
+      };
+    });
+
+  return {
+    wallet,
+    positions,
+    totalClaimableUsd,
+    lastUpdated: Date.now(),
+  };
+}

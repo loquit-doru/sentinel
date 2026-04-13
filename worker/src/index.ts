@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { computeRiskScore } from './risk/engine';
 import { fetchTopTokens } from './feed/bags';
+import { fetchClaimablePositions } from './fees/bags-fees';
 
 export interface Env {
   // Secrets
@@ -71,7 +72,7 @@ app.get('/v1/risk/:mint', async (c) => {
   }
 });
 
-// ── Fee Positions (stub — W4) ────────────────────────────
+// ── Fee Positions ────────────────────────────────────────
 
 app.get('/v1/fees/:wallet', async (c) => {
   const wallet = c.req.param('wallet');
@@ -80,16 +81,30 @@ app.get('/v1/fees/:wallet', async (c) => {
     return c.json({ ok: false, error: 'Invalid Solana wallet address' }, 400);
   }
 
-  // TODO W4: implement via Bags SDK fee.*
-  return c.json({
-    ok: true,
-    data: {
-      wallet,
-      positions: [],
-      totalClaimableUsd: 0,
-      message: 'Fee optimizer coming in W4',
-    },
-  });
+  const kv = c.env.SENTINEL_KV;
+
+  // Check KV cache (30s TTL)
+  if (kv) {
+    const cached = await kv.get(`fees:${wallet}`, 'json');
+    if (cached) {
+      return c.json({ ok: true, data: cached }, 200, { 'x-cache': 'HIT' });
+    }
+  }
+
+  try {
+    const snapshot = await fetchClaimablePositions(wallet, c.env.BAGS_API_KEY);
+
+    if (kv) {
+      c.executionCtx.waitUntil(
+        kv.put(`fees:${wallet}`, JSON.stringify(snapshot), { expirationTtl: 30 }),
+      );
+    }
+
+    return c.json({ ok: true, data: snapshot }, 200, { 'x-cache': 'MISS' });
+  } catch (err) {
+    console.error('Fee positions error:', err);
+    return c.json({ ok: false, error: 'Failed to fetch fee positions' }, 500);
+  }
 });
 
 // ── Token Feed ───────────────────────────────────────────

@@ -3,9 +3,13 @@ import type { TokenFeedItem } from '../../shared/types';
 import { SearchBar } from './components/SearchBar';
 import { FeedPage } from './pages/FeedPage';
 import { RiskDetailPage } from './pages/RiskDetailPage';
+import { FeePage } from './pages/FeePage';
 import { fetchTokenFeed } from './api';
 
-type View = { page: 'feed' } | { page: 'risk'; mint: string };
+type View =
+  | { page: 'feed' }
+  | { page: 'risk'; mint: string }
+  | { page: 'fees' };
 
 export function App() {
   const [view, setView] = useState<View>({ page: 'feed' });
@@ -32,13 +36,16 @@ export function App() {
   }, [view.page, loadFeed]);
 
   const handleSearch = (mint: string) => setView({ page: 'risk', mint });
-  const handleBack = () => setView({ page: 'feed' });
+  const goFeed = () => setView({ page: 'feed' });
+  const goFees = () => setView({ page: 'fees' });
+
+  const activeTab = view.page === 'fees' ? 'fees' : 'discover';
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-sentinel-border/50 px-4 sm:px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-sentinel-bg/80 sticky top-0 z-10">
-        <button onClick={handleBack} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <button onClick={goFeed} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 rounded-lg bg-sentinel-accent/10 border border-sentinel-accent/30 flex items-center justify-center">
             <span className="text-sentinel-accent text-lg font-bold">S</span>
           </div>
@@ -62,10 +69,42 @@ export function App() {
         </div>
       </header>
 
-      {/* Search */}
-      <div className="px-4 sm:px-6 py-4 flex justify-center border-b border-sentinel-border/30 bg-sentinel-surface/20">
-        <SearchBar onSearch={handleSearch} />
+      {/* Navigation tabs */}
+      <div className="px-4 sm:px-6 border-b border-sentinel-border/30 bg-sentinel-surface/20 flex items-center gap-1">
+        <button
+          onClick={goFeed}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+            activeTab === 'discover'
+              ? 'text-sentinel-accent'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          Discovery
+          {activeTab === 'discover' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-sentinel-accent rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={goFees}
+          className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+            activeTab === 'fees'
+              ? 'text-sentinel-accent'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          Fee Optimizer
+          {activeTab === 'fees' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-sentinel-accent rounded-full" />
+          )}
+        </button>
       </div>
+
+      {/* Search (only on discovery tab) */}
+      {activeTab === 'discover' && (
+        <div className="px-4 sm:px-6 py-4 flex justify-center border-b border-sentinel-border/30 bg-sentinel-surface/10">
+          <SearchBar onSearch={handleSearch} />
+        </div>
+      )}
 
       {/* Content */}
       <main className="flex-1 px-4 sm:px-6 py-6 max-w-5xl mx-auto w-full">
@@ -81,7 +120,10 @@ export function App() {
           </>
         )}
         {view.page === 'risk' && (
-          <RiskDetailPage mint={view.mint} onBack={handleBack} />
+          <RiskDetailPage mint={view.mint} onBack={goFeed} />
+        )}
+        {view.page === 'fees' && (
+          <FeePage />
         )}
       </main>
 
