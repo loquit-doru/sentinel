@@ -97,7 +97,7 @@ Agent that claims + compounds fees for creators automatically.
 ## 4. BAGS NATIVE INTEGRATION (cerință de bază, nu opțional)
 
 ### 4.1 App Store Presence
-- [ ] Submit pe `bags.fm/apply` (App Icon, Name, Description, GitHub, Category: AI Agents)
+- [x] Submit pe `bags.fm/apply` (App Icon, Name, Description, GitHub, Category: AI Agents)
 - [ ] App vizibilă pe `bags.fm/apps` și `bags.fm/hackathon/apps`
 - [ ] Status: Verified badge
 
@@ -160,7 +160,7 @@ Agent that claims + compounds fees for creators automatically.
 - [x] Install + test `@bagsfm/bags-sdk` v1.3.7
 - [x] Bags API key de la dev.bags.fm
 - [x] Helius free tier RPC + API key
-- [ ] **Submit pe bags.fm/apply** (AI Agents, "no coin yet")
+- [x] **Submit pe bags.fm/apply** (AI Agents, $SENT mint inclus)
 - [ ] Partner config exploratory (`sdk.partner`, `sdk.config`)
 - [x] Basic token feed endpoint (list recent launches via Bags API)
 - [x] RugCheck API: first call, understand response schema
