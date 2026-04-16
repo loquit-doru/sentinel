@@ -953,3 +953,63 @@ export async function fetchRecentClaims(): Promise<InsuranceClaim[]> {
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to fetch claims');
   return body.data;
 }
+
+// ── Creator Trust Score ──────────────────────────────────
+
+export interface CreatorTrustSignals {
+  tokenAge: number;
+  serialLauncher: boolean;
+  rugRatio: number;
+  avgTokenLifespan: number;
+  lpRemovalCount: number;
+  mintAuthorityActive: number;
+  avgHolderConcentration: number;
+  feeConsistency: number;
+}
+
+export interface CreatorTrustScore {
+  wallet: string;
+  trustScore: number;
+  trustTier: string;
+  signals: CreatorTrustSignals;
+  riskFlags: string[];
+  verdict: string;
+  computedAt: number;
+}
+
+export async function fetchCreatorTrust(wallet: string): Promise<CreatorTrustScore> {
+  const res = await fetch(`${BASE}/creator/${wallet}/trust`);
+  const body: ApiResponse<CreatorTrustScore> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to fetch trust score');
+  return body.data;
+}
+
+// ── Pre-Rug Simulator ────────────────────────────────────
+
+export interface ScenarioResult {
+  scenario: string;
+  applicable: boolean;
+  probability: 'low' | 'medium' | 'high' | 'critical';
+  estimatedLossPct: number;
+  estimatedTimeframe: string;
+  explanation: string;
+  mitigations: string[];
+}
+
+export interface RugSimulationResult {
+  mint: string;
+  tokenSymbol: string;
+  currentScore: number;
+  currentTier: string;
+  scenarios: ScenarioResult[];
+  worstCase: ScenarioResult | null;
+  overallRisk: 'low' | 'medium' | 'high' | 'critical';
+  simulatedAt: number;
+}
+
+export async function simulateRugScenarios(mint: string): Promise<RugSimulationResult> {
+  const res = await fetch(`${BASE}/risk/simulate-rug/${mint}`);
+  const body: ApiResponse<RugSimulationResult> = await res.json();
+  if (!body.ok || !body.data) throw new Error(body.error ?? 'Simulation failed');
+  return body.data;
+}

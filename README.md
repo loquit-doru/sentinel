@@ -15,7 +15,7 @@ AI risk intelligence + wallet portfolio scanner for [Bags](https://bags.fm) trad
 
 ## What it does
 
-### 12 Pillars — fully implemented & deployed
+### 14 Pillars — fully implemented & deployed
 
 #### 1. Risk Scoring Engine (core)
 Real-time risk score **0-100** for any token on Bags. Combines 8 weighted signals from 4 data sources.
@@ -76,6 +76,12 @@ Pre-signature transaction screening — ALLOW / WARN / BLOCK decisions before yo
 #### 12. Insurance Pool
 Community-backed rug protection. Stake $SENT in 3 tiers (Backer / Guardian / Whale Shield). File claims when tokens rug — auto-approved if risk score dropped 40+ points or token hit rug-tier. Pool health tracking, per-wallet claim history.
 
+#### 13. Creator Trust Score
+Advanced creator reputation with 8 behavioral signals: token age patterns, serial launcher detection (5+ tokens in 30 days), LP removal tracking, mint authority retention, holder concentration analysis, fee consistency. Weighted scoring with human-readable risk flags and verdict.
+
+#### 14. Pre-Rug Simulator
+"What if?" analysis for 6 rug scenarios: LP Pull, Mint Exploit, Whale Dump, Freeze Attack, Slow Rug, Honeypot Activation. Each with probability, estimated loss %, timeframe, explanation, and mitigations. Overall risk + worst-case identification.
+
 ---
 
 ## Live URLs
@@ -124,7 +130,7 @@ sentinel/
 └── shared/                      → TypeScript types + constants
 ```
 
-### API Endpoints (48 routes)
+### API Endpoints (51 routes)
 
 #### Risk & Discovery
 | Method | Route | Purpose |
@@ -195,6 +201,14 @@ sentinel/
 | POST | `/v1/insurance/claim` | File insurance claim |
 | GET | `/v1/insurance/claims/:wallet` | Wallet claim history |
 | GET | `/v1/insurance/claims` | Recent claims feed |
+
+#### Creator Trust & Rug Simulator
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/v1/creator/:wallet/trust` | Advanced trust score + signals + flags |
+| POST | `/v1/risk/simulate-rug` | Simulate specific rug scenarios |
+| GET | `/v1/risk/simulate-rug/:mint` | Simulate all 6 scenarios for a token |
+
 #### Monitoring & System
 | Method | Route | Purpose |
 |--------|-------|---------|

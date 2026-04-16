@@ -349,3 +349,62 @@ export interface InsurancePoolStats {
   poolHealthPct: number;
   lastUpdated: number;
 }
+
+// ── Creator Trust Score (advanced) ───────────────────────
+
+export interface CreatorTrustSignals {
+  tokenAge: number;            // avg age in days across tokens
+  serialLauncher: boolean;     // >5 tokens in 30 days
+  rugRatio: number;            // rugged / total (0-1)
+  avgTokenLifespan: number;    // days before abandonment or rug
+  lpRemovalCount: number;      // tokens where LP was pulled
+  mintAuthorityActive: number; // tokens with mint authority still active
+  avgHolderConcentration: number; // avg top5 holder % across tokens
+  feeConsistency: number;      // 0-1 (1 = consistently generates fees)
+}
+
+export interface CreatorTrustScore {
+  wallet: string;
+  trustScore: number;          // 0-100 (higher = more trustworthy)
+  trustTier: RiskTier;
+  signals: CreatorTrustSignals;
+  riskFlags: string[];         // human-readable flags like "Serial launcher", "LP puller"
+  verdict: string;             // one-liner summary
+  computedAt: number;
+}
+
+// ── Pre-Rug Simulator ────────────────────────────────────
+
+export type RugScenario =
+  | 'lp_pull'           // LP removed entirely
+  | 'mint_exploit'      // infinite mint flood
+  | 'whale_dump'        // top holder sells 100%
+  | 'freeze_attack'     // freeze authority exercised on holders
+  | 'slow_rug'          // gradual sell-off over days
+  | 'honeypot_activate'; // honeypot flag flipped post-launch
+
+export interface RugSimulationInput {
+  mint: string;
+  scenarios?: RugScenario[];   // if omitted, run all applicable
+}
+
+export interface ScenarioResult {
+  scenario: RugScenario;
+  applicable: boolean;         // can this scenario actually happen?
+  probability: 'low' | 'medium' | 'high' | 'critical';
+  estimatedLossPct: number;    // 0-100 (% of holder value lost)
+  estimatedTimeframe: string;  // "instant", "minutes", "hours", "days"
+  explanation: string;         // human-readable
+  mitigations: string[];       // what users can do
+}
+
+export interface RugSimulationResult {
+  mint: string;
+  tokenSymbol: string;
+  currentScore: number;
+  currentTier: RiskTier;
+  scenarios: ScenarioResult[];
+  worstCase: ScenarioResult | null;
+  overallRisk: 'low' | 'medium' | 'high' | 'critical';
+  simulatedAt: number;
+}

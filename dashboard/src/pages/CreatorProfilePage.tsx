@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { CreatorProfile, CreatorToken, RiskTier } from '../../../shared/types';
 import { ScoreGauge, TierBadge } from '../components/RiskDisplay';
-import { fetchCreatorProfile, getCreatorCardUrl, buildCreatorTweetUrl } from '../api';
+import { fetchCreatorProfile, getCreatorCardUrl, buildCreatorTweetUrl, fetchCreatorTrust } from '../api';
+import type { CreatorTrustScore } from '../api';
 
 const TIER_ROW_BG: Record<RiskTier, string> = {
   safe: 'bg-sentinel-safe/5 border-sentinel-safe/20',
@@ -58,6 +59,8 @@ export function CreatorProfilePage({
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [trust, setTrust] = useState<CreatorTrustScore | null>(null);
+  const [trustLoading, setTrustLoading] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -66,6 +69,12 @@ export function CreatorProfilePage({
       .then(setProfile)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    // Fetch trust score in parallel
+    setTrustLoading(true);
+    fetchCreatorTrust(wallet)
+      .then(setTrust)
+      .catch(() => {}) // non-blocking
+      .finally(() => setTrustLoading(false));
   }, [wallet]);
 
   useEffect(() => { load(); }, [load]);
@@ -136,6 +145,52 @@ export function CreatorProfilePage({
               }
             />
           </div>
+
+          {/* Trust Score (advanced) */}
+          {trustLoading && (
+            <div className="p-4 rounded-xl border border-sentinel-border/30 bg-sentinel-surface/20 animate-pulse">
+              <p className="text-sm text-gray-500">Computing advanced trust score…</p>
+            </div>
+          )}
+          {trust && !trustLoading && (
+            <div className="rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 overflow-hidden">
+              <div className="px-4 py-3 border-b border-sentinel-border/30 flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">🧠 Advanced Trust Score</h3>
+                <span className={`text-sm font-bold ${
+                  trust.trustScore >= 70 ? 'text-sentinel-safe' :
+                  trust.trustScore >= 40 ? 'text-sentinel-caution' :
+                  trust.trustScore >= 10 ? 'text-sentinel-danger' :
+                  'text-sentinel-rug'
+                }`}>{trust.trustScore}/100</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <p className="text-sm text-gray-300">{trust.verdict}</p>
+
+                {/* Signals grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <SignalChip label="Avg Token Age" value={`${trust.signals.tokenAge}d`} warn={trust.signals.tokenAge < 7} />
+                  <SignalChip label="Rug Ratio" value={`${(trust.signals.rugRatio * 100).toFixed(0)}%`} warn={trust.signals.rugRatio > 0.2} />
+                  <SignalChip label="LP Removals" value={String(trust.signals.lpRemovalCount)} warn={trust.signals.lpRemovalCount > 0} />
+                  <SignalChip label="Mint Auth Active" value={String(trust.signals.mintAuthorityActive)} warn={trust.signals.mintAuthorityActive > 0} />
+                  <SignalChip label="Holder Conc." value={`${trust.signals.avgHolderConcentration}%`} warn={trust.signals.avgHolderConcentration > 50} />
+                  <SignalChip label="Fee Consistency" value={`${(trust.signals.feeConsistency * 100).toFixed(0)}%`} warn={false} good={trust.signals.feeConsistency > 0.5} />
+                  <SignalChip label="Avg Lifespan" value={`${trust.signals.avgTokenLifespan}d`} warn={trust.signals.avgTokenLifespan < 7} />
+                  <SignalChip label="Serial Launch" value={trust.signals.serialLauncher ? 'YES' : 'No'} warn={trust.signals.serialLauncher} />
+                </div>
+
+                {/* Risk flags */}
+                {trust.riskFlags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {trust.riskFlags.map((flag, i) => (
+                      <span key={i} className="text-[10px] px-2 py-1 rounded-full bg-sentinel-surface/40 border border-sentinel-border/30 text-gray-300">
+                        {flag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Reputation Card — shareable */}
           <ReputationCard profile={profile} wallet={wallet} />
@@ -334,6 +389,20 @@ function StatCard({ label, value, color }: { label: string; value: string; color
     <div className="p-3 rounded-lg border border-sentinel-border/50 bg-sentinel-surface/30 text-center">
       <p className={`text-lg font-bold ${color ?? 'text-white'}`}>{value}</p>
       <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+function SignalChip({ label, value, warn, good }: { label: string; value: string; warn?: boolean; good?: boolean }) {
+  const borderClass = warn ? 'border-sentinel-danger/30 bg-sentinel-danger/5'
+    : good ? 'border-sentinel-safe/30 bg-sentinel-safe/5'
+    : 'border-sentinel-border/30 bg-sentinel-surface/30';
+  const valueClass = warn ? 'text-sentinel-danger' : good ? 'text-sentinel-safe' : 'text-white';
+
+  return (
+    <div className={`p-2 rounded-lg border ${borderClass} text-center`}>
+      <p className={`text-sm font-bold ${valueClass}`}>{value}</p>
+      <p className="text-[9px] text-gray-500 uppercase tracking-wider mt-0.5">{label}</p>
     </div>
   );
 }

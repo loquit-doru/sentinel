@@ -18,6 +18,7 @@ import { FirewallPage } from './pages/FirewallPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { FeeAnalyticsPage } from './pages/FeeAnalyticsPage';
 import { InsurancePage } from './pages/InsurancePage';
+import { SimulatorPage } from './pages/SimulatorPage';
 import { fetchTokenFeed } from './api';
 
 type View =
@@ -35,7 +36,8 @@ type View =
   | { page: 'firewall' }
   | { page: 'leaderboard' }
   | { page: 'fee-analytics' }
-  | { page: 'insurance' };
+  | { page: 'insurance' }
+  | { page: 'simulator' };
 
 function SentinelLogo({ size = 28 }: { size?: number }) {
   return (
@@ -54,7 +56,7 @@ function SentinelLogo({ size = 28 }: { size?: number }) {
   );
 }
 
-type TabId = 'discover' | 'xray' | 'alerts' | 'fees' | 'swarm' | 'monitor' | 'firewall' | 'bags' | 'leaderboard' | 'fee-analytics' | 'insurance';
+type TabId = 'discover' | 'xray' | 'alerts' | 'fees' | 'swarm' | 'monitor' | 'firewall' | 'bags' | 'leaderboard' | 'fee-analytics' | 'insurance' | 'simulator';
 
 const PRIMARY_TABS: { id: TabId; label: string }[] = [
   { id: 'discover', label: 'Discovery' },
@@ -68,6 +70,7 @@ const PRIMARY_TABS: { id: TabId; label: string }[] = [
 const MORE_TABS: { id: TabId; label: string }[] = [
   { id: 'leaderboard', label: '🏆 Leaderboard' },
   { id: 'fee-analytics', label: '📊 Fee Intel' },
+  { id: 'simulator', label: '🧪 Simulator' },
   { id: 'insurance', label: '🏦 Insurance' },
   { id: 'firewall', label: '🛡️ Firewall' },
   { id: 'bags',     label: 'Bags Native' },
@@ -150,10 +153,11 @@ export function App() {
   const goLeaderboard = () => setView({ page: 'leaderboard' });
   const goFeeAnalytics = () => setView({ page: 'fee-analytics' });
   const goInsurance = () => setView({ page: 'insurance' });
+  const goSimulator = () => setView({ page: 'simulator' });
 
   const tabGoHandlers: Record<TabId, () => void> = {
     discover: goFeed, xray: goXRay, alerts: goAlerts, fees: goFees,
-    swarm: goSwarm, monitor: goMonitor, firewall: goFirewall, bags: goBags, leaderboard: goLeaderboard, 'fee-analytics': goFeeAnalytics, insurance: goInsurance,
+    swarm: goSwarm, monitor: goMonitor, firewall: goFirewall, bags: goBags, leaderboard: goLeaderboard, 'fee-analytics': goFeeAnalytics, insurance: goInsurance, simulator: goSimulator,
   };
 
   if (view.page === 'landing') return <LandingPage onLaunch={goFeed} />;
@@ -180,6 +184,7 @@ export function App() {
     view.page === 'leaderboard'                       ? 'leaderboard' :
     view.page === 'fee-analytics'                     ? 'fee-analytics' :
     view.page === 'insurance'                          ? 'insurance' :
+    view.page === 'simulator'                          ? 'simulator' :
     view.page === 'bags'                              ? 'bags'     :
     'discover';
 
@@ -304,6 +309,7 @@ export function App() {
         {view.page === 'leaderboard' && <LeaderboardPage />}
         {view.page === 'fee-analytics' && <FeeAnalyticsPage connectedWallet={connectedWallet} />}
         {view.page === 'insurance' && <InsurancePage connectedWallet={connectedWallet} />}
+        {view.page === 'simulator' && <SimulatorPage onViewToken={handleSearch} />}
         {view.page === 'bags'     && <BagsNativePage connectedWallet={connectedWallet} />}
       </main>
 
@@ -311,7 +317,7 @@ export function App() {
       <footer className="border-t border-sentinel-border/30 px-6 py-4 flex items-center justify-between text-[11px] text-gray-600">
         <div className="flex items-center gap-2">
           <SentinelLogo size={14} />
-          <span>Sentinel v0.12.0</span>
+          <span>Sentinel v0.13.0</span>
         </div>
         <a href="https://bags.fm" target="_blank" rel="noopener" className="text-sentinel-accent/60 hover:text-sentinel-accent transition-colors">
           bags.fm ↗

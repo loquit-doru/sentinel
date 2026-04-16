@@ -25,6 +25,8 @@ import { getAppStoreInfo, getSentFeeShareTarget } from './app-store/info';
 import { runSwarmCycle, getSwarmState } from './swarm/engine';
 import { screenTransaction, getWalletConfig, addRule, removeRule, updateSettings, getFirewallStats, getFirewallLog } from './firewall/engine';
 import { getPoolStats, commitToPool, submitClaim, getWalletClaims, getRecentClaims, getCommitments } from './insurance/pool';
+import { computeCreatorTrustScore } from './creator/trust-score';
+import { simulateRug } from './risk/pre-rug-simulator';
 
 export interface Env {
   // Secrets
@@ -98,8 +100,8 @@ app.get('/health', (c) => {
   return c.json({
     status: 'ok',
     service: 'sentinel-api',
-    version: '0.12.0',
-    pillars: ['risk-intelligence', 'autoclaim', 'alert-feed', 'creator-reputation', 'partner-integration', 'token-gating', 'fee-analytics', 'fee-simulator', 'social-sharing', 'autonomous-firewall', 'insurance-pool'],
+    version: '0.13.0',
+    pillars: ['risk-intelligence', 'autoclaim', 'alert-feed', 'creator-reputation', 'creator-trust-score', 'partner-integration', 'token-gating', 'fee-analytics', 'fee-simulator', 'social-sharing', 'autonomous-firewall', 'insurance-pool', 'pre-rug-simulator'],
     bagsNative: true,
     walletConnect: true,
   });
@@ -962,6 +964,58 @@ app.get('/v1/creator/:wallet', async (c) => {
   } catch (err) {
     console.error('Creator profile error:', err);
     return c.json({ ok: false, error: 'Failed to build creator profile' }, 500);
+  }
+});
+
+// ── Creator Trust Score (advanced) ───────────────────────
+
+app.get('/v1/creator/:wallet/trust', async (c) => {
+  const wallet = c.req.param('wallet');
+  if (!SOLANA_ADDR_RE.test(wallet)) {
+    return c.json({ ok: false, error: 'Invalid Solana wallet address' }, 400);
+  }
+
+  try {
+    const trust = await computeCreatorTrustScore(wallet, c.env);
+    return c.json({ ok: true, data: trust });
+  } catch (err) {
+    console.error('Creator trust score error:', err);
+    return c.json({ ok: false, error: 'Failed to compute trust score' }, 500);
+  }
+});
+
+// ── Pre-Rug Simulator ────────────────────────────────────
+
+app.post('/v1/risk/simulate-rug', async (c) => {
+  const body = await c.req.json<{ mint: string; scenarios?: string[] }>();
+  if (!body?.mint || !SOLANA_ADDR_RE.test(body.mint)) {
+    return c.json({ ok: false, error: 'Invalid token mint' }, 400);
+  }
+
+  try {
+    const result = await simulateRug(
+      { mint: body.mint, scenarios: body.scenarios as any },
+      c.env,
+    );
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    console.error('Rug simulation error:', err);
+    return c.json({ ok: false, error: 'Simulation failed' }, 500);
+  }
+});
+
+app.get('/v1/risk/simulate-rug/:mint', async (c) => {
+  const mint = c.req.param('mint');
+  if (!SOLANA_ADDR_RE.test(mint)) {
+    return c.json({ ok: false, error: 'Invalid token mint' }, 400);
+  }
+
+  try {
+    const result = await simulateRug({ mint }, c.env);
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    console.error('Rug simulation error:', err);
+    return c.json({ ok: false, error: 'Simulation failed' }, 500);
   }
 });
 

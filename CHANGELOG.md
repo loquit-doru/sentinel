@@ -1,6 +1,23 @@
 # CHANGELOG
 
 ## 2026-04-16
+### Pre-Rug Simulator + Creator Trust Score (Week 5)
+**Fișier(e)**: `worker/src/creator/trust-score.ts`, `worker/src/risk/pre-rug-simulator.ts`, `worker/src/index.ts`, `dashboard/src/pages/SimulatorPage.tsx`, `dashboard/src/pages/CreatorProfilePage.tsx`, `dashboard/src/App.tsx`, `dashboard/src/api.ts`, `shared/types.ts`
+**Motiv**: Week 5 hackathon — advanced creator trust scoring + pre-rug "what if" simulator.
+**Adăugat**:
+- **Creator Trust Score** (`worker/src/creator/trust-score.ts`): Advanced scoring cu 8 behavioral signals — token age patterns, serial launcher detection (5+ tokens/30 days), LP removal tracking, mint authority retention, holder concentration analysis, fee consistency scoring. Weighted formula (baseline 50 ± signals). Verdict generation + human-readable risk flags (⚡ Serial launcher, 💧 LP removals, 🐋 High concentration, etc.). KV cached 15min.
+- **Pre-Rug Simulator** (`worker/src/risk/pre-rug-simulator.ts`): 6 rug scenarios — LP Pull, Mint Exploit, Whale Dump, Freeze Attack, Slow Rug, Honeypot Activation. Fiecare cu probability (low/medium/high/critical), estimated loss %, timeframe, explanation, mitigations. Overall risk derivation + worst-case identification. KV cached 5min.
+- **3 noi rute API**:
+  - `GET /v1/creator/:wallet/trust` — advanced trust score cu signals + flags + verdict
+  - `POST /v1/risk/simulate-rug` — simulate specific scenarios (body: mint + optional scenarios array)
+  - `GET /v1/risk/simulate-rug/:mint` — simulate all 6 scenarios for a mint
+- **SimulatorPage** (dashboard): Mint input → 6 scenario cards cu expand/collapse, probability badges, loss estimates, mitigations, overall risk bar, worst-case callout, link to full risk page.
+- **CreatorProfilePage upgrade**: Fetches trust score in parallel, afișează Advanced Trust Score panel cu 8 signal chips (token age, rug ratio, LP removals, mint authority, holder conc., fee consistency, lifespan, serial launcher) + risk flag badges + verdict text.
+- **Shared types**: `CreatorTrustSignals`, `CreatorTrustScore`, `RugScenario`, `RugSimulationInput`, `ScenarioResult`, `RugSimulationResult`.
+- **Nav**: 🧪 Simulator adăugat în More dropdown.
+- **Version bump**: v0.13.0.
+
+## 2026-04-16
 ### Autonomous Firewall + Insurance Pool (Week 4)
 **Fișier(e)**: `worker/src/firewall/engine.ts`, `worker/src/insurance/pool.ts`, `worker/src/index.ts`, `dashboard/src/pages/FirewallPage.tsx`, `dashboard/src/pages/InsurancePage.tsx`, `dashboard/src/App.tsx`, `dashboard/src/api.ts`, `shared/types.ts`
 **Motiv**: Week 4 hackathon — autonomous pre-signature firewall + community insurance pool.
