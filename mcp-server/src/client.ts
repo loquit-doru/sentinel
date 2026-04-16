@@ -52,6 +52,179 @@ export interface FeeSnapshot {
   totalClaimableUsd: number;
 }
 
+export interface WalletXRayResult {
+  wallet: string;
+  holdings: Array<{
+    mint: string;
+    amount: number;
+    decimals: number;
+    score: number | null;
+    tier: string | null;
+  }>;
+  portfolioHealth: number;
+  flaggedCount: number;
+  scannedAt: number;
+}
+
+export interface CreatorProfile {
+  wallet: string;
+  totalTokens: number;
+  ruggedCount: number;
+  safeCount: number;
+  avgRiskScore: number;
+  reputationScore: number;
+  reputationTier: 'safe' | 'caution' | 'danger' | 'rug';
+  tokens: Array<{
+    mint: string;
+    name: string;
+    symbol: string;
+    riskScore: number;
+    riskTier: 'safe' | 'caution' | 'danger' | 'rug';
+    rugged: boolean;
+    lifetimeFees: number;
+  }>;
+  scannedAt: number;
+}
+
+export interface ApiStats {
+  totalRequests: number;
+  byEndpoint: {
+    risk: number;
+    fees: number;
+    claim: number;
+    feed: number;
+  };
+  today: {
+    date: string;
+    total: number;
+    risk: number;
+    fees: number;
+    claim: number;
+    feed: number;
+  };
+  yesterday: {
+    date: string;
+    total: number;
+  };
+}
+
+export interface HealthStatus {
+  status: string;
+  service: string;
+  version: string;
+  pillars: string[];
+}
+
+// ── Partner Types ────────────────────────────────────────
+
+export interface PartnerConfig {
+  partner: string;
+  bps: number;
+  totalClaimedFees: string;
+  totalAccumulatedFees: string;
+  totalLifetimeAccumulatedFees: string;
+}
+
+export interface PartnerClaimStats {
+  claimedFees: string;
+  unclaimedFees: string;
+  claimedFeesUsd: number;
+  unclaimedFeesUsd: number;
+}
+
+// ── Token Gate Types ─────────────────────────────────────
+
+export type GateTier = 'free' | 'holder' | 'whale';
+
+export interface TokenGateResult {
+  wallet: string;
+  tier: GateTier;
+  sentBalance: number;
+  sentRawBalance: string;
+  eligible: boolean;
+  checkedAt: number;
+}
+
+// ── App Store Types ──────────────────────────────────────
+
+export interface AppStoreInfo {
+  name: string;
+  tagline: string;
+  description: string;
+  category: string;
+  token: { symbol: string; mint: string; bagsUrl: string };
+  links: Record<string, string>;
+  features: string[];
+  version: string;
+  updatedAt: string;
+}
+
+export interface SentFeeShareConfig {
+  tokenMint: string;
+  tokenSymbol: string;
+  allocations: { creatorPct: number; holdersPct: number; devFundPct: number; partnerPct: number };
+  feeClaimers: Array<{ label: string; wallet: string; bps: number }>;
+}
+
+// ── Swarm Types ──────────────────────────────────────────
+
+export interface SwarmAgent {
+  name: string;
+  role: string;
+  vote: 'proceed' | 'hold' | 'reject' | 'split';
+  reasoning: string;
+}
+
+export interface SwarmResult {
+  wallet: string;
+  agents: SwarmAgent[];
+  consensus: 'proceed' | 'hold' | 'reject' | 'split';
+  confidence: number;
+  summary: string;
+  cachedAt?: number;
+}
+
+// ── Trade Types ──────────────────────────────────────────
+
+export interface TradeQuote {
+  inputMint: string;
+  outputMint: string;
+  inAmount: string;
+  outAmount: string;
+  priceImpactPct: number;
+  riskScore: number | null;
+  riskTier: string | null;
+}
+
+// ── Smart Fee Types ──────────────────────────────────────
+
+export interface SmartFeePosition {
+  tokenMint: string;
+  tokenSymbol: string;
+  claimableUsd: number;
+  riskScore: number | null;
+  riskTier: string | null;
+  urgency: 'high' | 'medium' | 'low';
+}
+
+export interface SmartFeeSnapshot {
+  wallet: string;
+  positions: SmartFeePosition[];
+  totalClaimableUsd: number;
+  highUrgencyCount: number;
+}
+
+// ── Alert Types ──────────────────────────────────────────
+
+export interface AlertItem {
+  id: string;
+  type: string;
+  severity: 'critical' | 'warning' | 'info';
+  mint: string;
+  message: string;
+  timestamp: number;
+}
+
 export class SentinelClient {
   private baseUrl: string;
 
@@ -59,10 +232,11 @@ export class SentinelClient {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
   }
 
-  private async request<T>(path: string): Promise<T> {
+  private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      ...options,
+      headers: { 'Accept': 'application/json', ...options?.headers },
     });
 
     if (!response.ok) {
@@ -92,5 +266,90 @@ export class SentinelClient {
   /** Get claimable fee positions for a wallet */
   async getClaimableFees(wallet: string): Promise<FeeSnapshot> {
     return this.request<FeeSnapshot>(`/v1/fees/${encodeURIComponent(wallet)}`);
+  }
+
+  /** Get wallet portfolio x-ray with per-holding risk context */
+  async getWalletXRay(wallet: string): Promise<WalletXRayResult> {
+    return this.request<WalletXRayResult>(`/v1/portfolio/${encodeURIComponent(wallet)}`);
+  }
+
+  /** Get creator reputation profile */
+  async getCreatorProfile(wallet: string): Promise<CreatorProfile> {
+    return this.request<CreatorProfile>(`/v1/creator/${encodeURIComponent(wallet)}`);
+  }
+
+  /** Public health endpoint */
+  async getHealth(): Promise<HealthStatus> {
+    return this.request<HealthStatus>('/health');
+  }
+
+  /** Public stats endpoint */
+  async getStats(): Promise<ApiStats> {
+    return this.request<ApiStats>('/stats');
+  }
+
+  // ── Partner Integration ────────────────────────────────
+
+  /** Get partner config for a wallet */
+  async getPartnerConfig(wallet: string): Promise<{ config: PartnerConfig | null; registered: boolean }> {
+    return this.request<{ config: PartnerConfig | null; registered: boolean }>(`/v1/partner/${encodeURIComponent(wallet)}`);
+  }
+
+  /** Get partner claim stats */
+  async getPartnerStats(wallet: string): Promise<PartnerClaimStats> {
+    return this.request<PartnerClaimStats>(`/v1/partner/${encodeURIComponent(wallet)}/stats`);
+  }
+
+  // ── Token Gate ─────────────────────────────────────────
+
+  /** Check $SENT token gate tier for a wallet */
+  async checkTokenGate(wallet: string): Promise<TokenGateResult> {
+    return this.request<TokenGateResult>(`/v1/gate/${encodeURIComponent(wallet)}`);
+  }
+
+  // ── App Store ──────────────────────────────────────────
+
+  /** Get Sentinel app store info */
+  async getAppInfo(): Promise<AppStoreInfo> {
+    return this.request<AppStoreInfo>('/v1/app/info');
+  }
+
+  /** Get $SENT fee share target config */
+  async getSentFeeShare(): Promise<SentFeeShareConfig> {
+    return this.request<SentFeeShareConfig>('/v1/app/fee-share');
+  }
+
+  // ── Swarm Intelligence ─────────────────────────────────
+
+  /** Run 5-agent swarm analysis for a wallet */
+  async runSwarm(wallet: string): Promise<SwarmResult> {
+    return this.request<SwarmResult>(`/v1/swarm/${encodeURIComponent(wallet)}`, { method: 'POST' });
+  }
+
+  /** Get cached swarm state for a wallet */
+  async getSwarmState(wallet: string): Promise<SwarmResult | null> {
+    return this.request<SwarmResult | null>(`/v1/swarm/${encodeURIComponent(wallet)}`);
+  }
+
+  // ── Trade Intelligence ─────────────────────────────────
+
+  /** Get swap quote with risk context */
+  async getTradeQuote(inputMint: string, outputMint: string, amount: string): Promise<TradeQuote> {
+    const params = new URLSearchParams({ inputMint, outputMint, amount });
+    return this.request<TradeQuote>(`/v1/trade/quote?${params}`);
+  }
+
+  // ── Smart Fees ─────────────────────────────────────────
+
+  /** Get risk-aware fee urgency snapshot */
+  async getSmartFees(wallet: string): Promise<SmartFeeSnapshot> {
+    return this.request<SmartFeeSnapshot>(`/v1/fees/${encodeURIComponent(wallet)}/smart`);
+  }
+
+  // ── Alerts ─────────────────────────────────────────────
+
+  /** Get alert feed */
+  async getAlertFeed(): Promise<AlertItem[]> {
+    return this.request<AlertItem[]>('/v1/alerts/feed');
   }
 }

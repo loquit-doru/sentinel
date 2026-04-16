@@ -13,6 +13,10 @@ binding = "SENTINEL_KV"
 id = "0404ed24f0d94a3498965f3ee2bbffb9"
 preview_id = "6615319c926a4836ada7e73634004ffe"
 
+# LP Drain Monitor runs every 15 min for timely rug detection
+[triggers]
+crons = ["*/15 * * * *"]
+
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "sentinel-db"

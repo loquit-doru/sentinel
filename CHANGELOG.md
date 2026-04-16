@@ -1,5 +1,233 @@
 # CHANGELOG
 
+## 2026-04-16
+### Autonomous Firewall + Insurance Pool (Week 4)
+**Fișier(e)**: `worker/src/firewall/engine.ts`, `worker/src/insurance/pool.ts`, `worker/src/index.ts`, `dashboard/src/pages/FirewallPage.tsx`, `dashboard/src/pages/InsurancePage.tsx`, `dashboard/src/App.tsx`, `dashboard/src/api.ts`, `shared/types.ts`
+**Motiv**: Week 4 hackathon — autonomous pre-signature firewall + community insurance pool.
+**Adăugat**:
+- **Autonomous Firewall Engine** (`worker/src/firewall/engine.ts`): pre-transaction screening (ALLOW/WARN/BLOCK) cu risk score evaluation, honeypot detection, LP drain blocking, per-wallet custom rules (whitelist/blocklist), auto-protection settings, activity log per wallet, global stats (screened/blocked/saved USD).
+- **7 firewall routes**: `POST /v1/firewall/screen` (screen transaction), `GET /v1/firewall/:wallet/config` (wallet config), `POST /v1/firewall/:wallet/rules` (add rule), `DELETE /v1/firewall/:wallet/rules/:ruleId` (remove rule), `PATCH /v1/firewall/:wallet/settings` (toggle auto-block), `GET /v1/firewall/stats` (global stats), `GET /v1/firewall/:wallet/log` (activity log).
+- **Insurance Pool Engine** (`worker/src/insurance/pool.ts`): commitment tracking (3 tiers: backer/guardian/whale-shield), auto-evaluated claims (approved if score dropped 40+ or hit rug-tier, denied if <10 drop), pool health %, per-wallet claim history.
+- **6 insurance routes**: `GET /v1/insurance/pool` (pool stats), `GET /v1/insurance/commitments` (all backers), `POST /v1/insurance/commit` (pledge $SENT), `POST /v1/insurance/claim` (file claim), `GET /v1/insurance/claims/:wallet` (wallet claims), `GET /v1/insurance/claims` (recent claims).
+- **FirewallPage v2** (dashboard): replaced bookmarklet-only page with full autonomous firewall UI — 3 tabs: Screen Token (mint input + amount → decision verdict with reasons + risk exposure), Rules (auto-protection toggles + add/remove custom whitelist/blocklist), Activity Log (screening history with decisions). Bookmarklet preserved as fallback section.
+- **InsurancePage** (dashboard): 4 tabs — Pool Activity (stats grid + recent claims + tier info), Back Pool (commit $SENT with quick-select amounts), File Claim (form with auto-evaluation result), My Claims (history with status badges).
+- **13 new API functions** în `dashboard/src/api.ts` for firewall + insurance.
+- **Shared types**: `FirewallDecision`, `FirewallRule`, `FirewallScreenResult`, `FirewallWalletConfig`, `FirewallStats`, `FirewallLogEntry`, `InsuranceCommitment`, `InsuranceClaim`, `InsurancePoolStats`.
+- **Nav**: 🛡️ Firewall (upgraded) + 🏦 Insurance adăugate în More dropdown.
+- **Version bump**: v0.12.0 (health + footer).
+
+## 2026-04-16
+### Fee-Share Innovation + Bags-Native Depth (Week 3)
+**Fișier(e)**: `worker/src/fees/analytics.ts`, `worker/src/fees/simulator.ts`, `worker/src/badge/creator-card.ts`, `worker/src/index.ts`, `dashboard/src/pages/FeeAnalyticsPage.tsx`, `dashboard/src/pages/CreatorProfilePage.tsx`, `dashboard/src/App.tsx`, `dashboard/src/api.ts`, `shared/types.ts`
+**Motiv**: Week 3 hackathon — fee-share innovation (hackathon track!) + deeper Bags-native integration.
+**Adăugat**:
+- **Fee Revenue Analytics** (`GET /v1/fees/:wallet/analytics`): yield projections (daily/monthly/yearly), risk-adjusted portfolio score, top earner detection, per-position APY estimates. KV cached 5min.
+- **Fee-Share Simulator** (`POST /v1/fees/simulate`): input daily volume + BPS allocations → projected revenue per recipient, comparison vs median Bags token. Pure function, instant response.
+- **Creator Reputation Card** (`GET /v1/card/creator/:wallet`): 1200×630 Twitter/OG SVG card cu reputation gauge, token stats (safe/caution/rugged), token history list, trust tier badge. KV cached 10min.
+- **FeeAnalyticsPage** (dashboard): dual-tab page — Revenue Analytics (wallet input, summary stats, risk health bar, position list cu urgency/APY) + Fee Simulator (interactive BPS editor, volume/fee-rate inputs, per-recipient breakdown, median comparison).
+- **Creator card link** pe CreatorProfilePage: buton 🖼️ Card care deschide SVG-ul shareable.
+- **API client functions**: `fetchFeeAnalytics()`, `simulateFeeShare()`, `getCreatorCardUrl()`, `buildCreatorTweetUrl()`.
+- **Shared types**: `FeePositionAnalytics`, `FeeRevenueAnalytics`, `FeeSimulationInput`, `FeeSimulationResult`.
+- **Nav**: 📊 Fee Intel adăugat în More dropdown.
+- **Version bump**: v0.11.0 (health + footer).
+
+### Social Sharing + Leaderboard (Week 2)
+**Fișier(e)**: `worker/src/badge/card.ts`, `worker/src/index.ts`, `dashboard/src/pages/LeaderboardPage.tsx`, `dashboard/src/pages/RiskDetailPage.tsx`, `dashboard/src/pages/FirewallPage.tsx`, `dashboard/src/App.tsx`, `dashboard/src/api.ts`, `shared/types.ts`
+**Motiv**: Week 2 hackathon — viral sharing loop + social leaderboard (4/4 AI unanim recomandat).
+**Adăugat**:
+- **Shareable Risk Card SVG** (`GET /v1/card/:mint`): 1200×630 Twitter-card size cu score gauge, tier badge, 8 breakdown bars, Sentinel branding + CTA. KV cached 120s.
+- **Social Leaderboard** (`GET /v1/leaderboard?period=weekly|alltime`): Top 50 risk hunters by scans, rugs detected, shares. KV-backed aggregation, 5min cache.
+- **Wallet scan tracking**: `x-wallet` header tracking pe risk endpoint → populează leaderboard automat.
+- **Share buttons pe RiskDetailPage**: Tweet (pre-filled cu score/tier), Copy Link, View Card SVG.
+- **LeaderboardPage**: Rank badges (🥇🥈🥉), period toggle, stats bar, tier badges, empty state.
+- **Dashboard nav**: Leaderboard adăugat în More dropdown cu 🏆 emoji.
+- **Shared types**: `LeaderboardEntry`, `LeaderboardResponse` adăugate.
+- **API client functions**: `fetchLeaderboard()`, `getShareCardUrl()`, `buildTweetUrl()`, `getSharePageUrl()`.
+- **Fix pre-existent**: `FirewallPage.tsx` — adăugat `useRef` import + `buildBookmarklet()` function (lipseau).
+
+### Claude Skill Expansion (MCP v0.2.0)
+**Fișier(e)**: `mcp-server/src/tools.ts`, `mcp-server/src/client.ts`, `mcp-server/src/index.ts`, `mcp-server/package.json`, `mcp-server/README.md`, `mcp-server/SYSTEM_PROMPT.md`
+**Motiv**: Week 1 hackathon — Claude Skills track necesită MCP server complet cu documentație.
+**Adăugat**:
+- **5 noi MCP tools**: `run_swarm_analysis` (5-agent AI swarm), `get_trade_quote` (swap + risk), `get_smart_fees` (urgency-based claim), `get_alert_feed` (real-time risk alerts), total 16 tools
+- **Client methods**: `runSwarm()`, `getSwarmState()`, `getTradeQuote()`, `getSmartFees()`, `getAlertFeed()`
+- **Types**: `SwarmResult`, `SwarmAgent`, `TradeQuote`, `SmartFeeSnapshot`, `SmartFeePosition`, `AlertItem`
+- **SYSTEM_PROMPT.md**: Persona, comportament, stil (risk tiers cu emoji)
+- **README.md**: Full Claude Skill docs cu Claude Desktop config, exemple, arhitectură
+- **X_CONTENT_PLAN.md**: 7-day launch plan (Rug of the Day, Safe Pick, education, Claude demo)
+- Version bump 0.1.0 → 0.2.0
+
+## 2026-04-15
+### Wallet Connect + Unit Tests (v0.8.0)
+**Fișier(e)**: `dashboard/src/App.tsx`, `dashboard/src/pages/WalletXRayPage.tsx`, `dashboard/src/pages/ProofPage.tsx`, `dashboard/src/pages/BagsNativePage.tsx`, `worker/tests/scoring-engine.test.ts`, `worker/tests/swarm-consensus.test.ts`, `worker/tests/app-store.test.ts`
+**Motiv**: P1 — wallet connect integrat în header + toate paginile, unit tests comprehensive.
+**Adăugat**:
+- **Wallet Connect**: `WalletMultiButton` în header (Phantom + Solflare), vizibil pe toate paginile
+- **WalletXRayPage**: auto-fill din connected wallet, păstrează și manual paste
+- **ProofPage**: auto-fill din connected wallet
+- **BagsNativePage**: folosește connected wallet (auto-load la connect), nu mai e hardcoded
+- **48 unit tests** (was 17): scoring engine (tiers, weights, bounds), swarm consensus (block override, unanimity, split, IDs), app store (metadata, fee-share BPS sum, allocations)
+- Health v0.8.0 cu `walletConnect: true`
+- Footer v0.8.0
+
+## 2026-04-15
+### Bags-Native Integration + README Overhaul (v0.7.0)
+**Fișier(e)**: `worker/src/partner/bags-partner.ts`, `worker/src/gate/token-gate.ts`, `worker/src/app-store/info.ts`, `worker/src/index.ts`, `dashboard/src/pages/BagsNativePage.tsx`, `dashboard/src/api.ts`, `dashboard/src/App.tsx`, `mcp-server/src/client.ts`, `mcp-server/src/tools.ts`, `README.md`
+**Motiv**: Deep Bags integration — partner config, $SENT token-gating, app store metadata, fee-share target config. P1 + P0 din gap analysis.
+**Adăugat**:
+- **Partner Integration**: REST client pt Bags Partner API (getPartnerConfig, getPartnerCreationTx, getPartnerClaimStats, getPartnerClaimTxs)
+- **Token Gating**: $SENT holder verification via Helius RPC cu 3 tiers (free/holder/whale), cache 5min în KV
+- **App Store Info**: Metadata centralizat pt bags.fm/apply (name, tagline, features, links, version)
+- **Fee Share Target**: Config 40/30/20/10 split (creator/holders/dev/partner) cu BPS values
+- 8 rute API noi: partner CRUD + stats + claim, gate check + verify, app info + fee-share
+- Dashboard BagsNativePage cu 4 secțiuni (token gate, partner, fee share, app store)
+- 5 MCP tools noi (23 total): get_partner_config, check_token_gate, get_app_info, get_sent_fee_share, get_partner_stats
+- Health actualizat la v0.7.0 cu 10 pillars + `bagsNative: true`
+- README complet rescris: 10 pillars, 35 API routes, 23 MCP tools, architecture tree, $SENT tokenomics
+- E2E testat pe producție: health ✅, app info ✅, fee share ✅, gate ✅, partner ✅
+
+## 2026-04-15
+### Full MVP Complete — Campaign OS, Escrow, Proof Dashboard (v0.6.0)
+**Fișier(e)**: `worker/src/campaign/`, `worker/src/escrow/`, `worker/src/proof/`, `worker/src/index.ts`, `dashboard/src/pages/CampaignPage.tsx`, `dashboard/src/pages/EscrowPage.tsx`, `dashboard/src/pages/ProofPage.tsx`, `dashboard/src/api.ts`, `dashboard/src/App.tsx`, `mcp-server/src/client.ts`, `mcp-server/src/tools.ts`
+**Motiv**: Completarea MVP-ului 100% pentru Bags Hackathon — cele 3 feature-uri lipsă: Campaign OS (fee routing), Creator Escrow (milestone payments), Proof Dashboard (KPI metrics).
+**Adăugat**:
+- **Campaign OS**: Policy engine cu 4 preseturi (Balanced 40/30/20/10, Buyback Heavy, Community First, LP Growth), fee routing cu split preview, swap quote buyback integration
+- **Creator Escrow**: Milestone-based contract management cu create/release/list, summary stats, status tracking (pending → released)
+- **Proof Dashboard**: KPI aggregation (fee efficiency, buyback consistency, payout rate), weighted health score 0-100, buyback impact metrics, escrow summary, route history
+- 13 rute API noi: campaign CRUD + preview + route, escrow create + list + release, proof snapshot
+- 3 pagini dashboard noi: CampaignPage, EscrowPage, ProofPage
+- 8 MCP tools noi (18 total): create_campaign, get_campaign, preview_fee_route, execute_fee_route, create_escrow, get_escrows, release_milestone, get_proof_snapshot
+- Health endpoint actualizat la v0.6.0 cu 8 pillars
+- E2E testat pe producție: campaign create ✅, fetch ✅, preview ✅, escrow create ✅, milestone release ✅, proof KPIs ✅
+
+## 2026-04-15
+### Swarm Intelligence Layer (v0.5.0)
+**Fișier(e)**: `worker/src/swarm/`, `dashboard/src/pages/SwarmPage.tsx`, `dashboard/src/api.ts`, `dashboard/src/App.tsx`, `mcp-server/src/tools.ts`, `mcp-server/src/client.ts`
+**Motiv**: Bags Hackathon — AI Agents track. Multi-agent system care analizează wallet-ul unui user, votează pe acțiuni, și ajunge la consensus.
+**Adăugat**:
+- 5 swarm agents: Fee Scanner, Auto Claimer, Trade Signal, Launch Advisor, Risk Sentinel
+- Consensus engine cu weighted voting, block override, și confidence thresholds
+- Coordinator care orchestrează agenții în paralel și persistă starea în KV
+- 4 rute API noi: `POST /v1/swarm/run`, `GET /v1/swarm/state/:wallet`, `GET /v1/swarm/cycle/:wallet`, `POST /v1/swarm/trade-intent`
+- Dashboard SwarmPage cu agent status cards, decision cards expandabile, summary bar
+- 3 MCP tools noi: `run_swarm_cycle`, `get_swarm_state`, `queue_trade_intent`
+- Health endpoint actualizat la v0.5.0 cu pillar `swarm-intelligence`
+
+## 2026-04-15
+### Telegram One-Click UX (No Inputs)
+**Fișier(e)**: `dashboard/src/pages/FeePage.tsx`
+**Motiv**: Chiar și cu auto-connect, câmpul de username crea confuzie; utilizatorul trebuia să decidă ce completează
+**Adăugat**:
+- Eliminat input-ul de Telegram din UI pentru activare
+- Flux simplificat la un singur buton: `Connect Telegram`
+- Text de ghidare redus la 3 pași expliciți (Start bot → send message → Connect)
+- Etichetă de loading actualizată la `Connecting...` pentru feedback clar
+
+### Telegram Auto-Connect (No Manual Chat ID)
+**Fișier(e)**: `worker/src/index.ts`, `worker/src/notify/telegram.ts`, `dashboard/src/api.ts`, `dashboard/src/pages/FeePage.tsx`
+**Motiv**: Fluxul cu chat ID numeric manual era dificil pentru utilizatori și genera erori frecvente la activare (`Invalid Telegram chat ID`)
+**Adăugat**:
+- Endpoint nou `POST /v1/monitor/connect` care rezolvă automat chat ID-ul din `getUpdates` (opțional filtrează după username)
+- Resolver Telegram nou în worker (`resolveTelegramChatId`) cu selecție pe ultimul mesaj privat
+- Test ping Telegram este trimis automat în fluxul de connect
+- Dashboard-ul folosește noul flow automat (`connectMonitorAuto`) și nu mai cere chat ID numeric
+- UI update: câmp opțional pentru username + instrucțiuni clare „Start bot + send message + Enable"
+
+### Telegram Chat ID UX Guardrails
+**Fișier(e)**: `dashboard/src/pages/FeePage.tsx`
+**Motiv**: Utilizatorii introduceau `@username` în loc de chat ID numeric și primeau eroare generică `Invalid Telegram chat ID`
+**Adăugat**:
+- Validare client-side explicită pentru cazurile `@username` și format invalid
+- Mesaj clar de eroare care explică exact formatul acceptat (`123456789` sau `-100...`)
+- Placeholder actualizat + `inputMode="numeric"` pentru a ghida inputul corect
+- Hint persistent în UI: instrucțiune să obțină chat ID numeric prin `@userinfobot`
+
+## 2026-04-14
+### Documentation Sync — PROJECT_PLAN Consistency
+**Fișier(e)**: `PROJECT_PLAN.md`
+**Motiv**: Aliniere plan master cu implementarea actuală (MCP/Telegram/structure) pentru a evita drift între plan, README și vault
+**Adăugat**:
+- Corectat titlul fișierului (`SENTINEL`)
+- Actualizat status pentru MCP Skills (7 tools)
+- Actualizat status pentru Telegram monitor MVP (enable + test ping + scheduled flow)
+- Actualizat secțiunea de structură repo cu modulele reale (smart-fees, monitor, claims, notify, creator)
+- Actualizat timestamp "Last updated" la 14 April 2026
+
+### README Alignment — v4 API + Ops Notes
+**Fișier(e)**: `README.md`
+**Motiv**: Aliniere documentație publică cu implementarea curentă (monitoring/claims flow, Auto Fee Optimizer, KV quota behavior)
+**Adăugat**:
+- Secțiune explicită `Auto Fee Optimizer (live)`
+- API endpoints extins cu rutele de fees, monitor și pending claims
+- Note actualizate pentru analytics KV opțional (`ENABLE_KV_ANALYTICS`)
+- Bags integration clarificat (claim tx builder + deep-link claim UX)
+- Variabile de mediu completate (`TELEGRAM_BOT_TOKEN`, `ENABLE_KV_ANALYTICS`)
+
+### MCP Tooling — Jury-Ready Output Polish
+**Fișier(e)**: `mcp-server/src/tools.ts`, `README.md`
+**Motiv**: Claude Skills demo are nevoie de output orientat pe decizie (verdict, riscuri principale, acțiuni)
+**Adăugat**:
+- Output executive în MCP: `verdict`, `confidence`, `weakestSignals`, `recommendedActions` pe tool-urile relevante
+- Ranking explicit în `compare_tokens`
+- `portfolioVerdict` și acțiuni recomandate în `get_wallet_xray`
+- `creatorVerdict` în `get_creator_profile`
+- `demoReady` în `get_service_status`
+- README actualizat cu lista completă de tool-uri MCP disponibile
+
+### MCP Polish + Dashboard Pitch Metrics
+**Fișier(e)**: `mcp-server/src/client.ts`, `mcp-server/src/tools.ts`, `dashboard/src/pages/FeePage.tsx`
+**Motiv**: Consolidare pentru Claude Skills demo + metrici de business vizibile în dashboard pentru pitch
+**Adăugat**:
+- MCP tools noi: `get_wallet_xray`, `get_creator_profile`, `get_service_status`
+- Validare mai strictă pentru adrese Solana în MCP tools (input hygiene)
+- MCP client extins cu endpoint-uri pentru wallet x-ray, creator profile, health și stats
+- În Fee dashboard: carduri pitch metrics pe date reale din wallet: `Gross Claimable`, `Sentinel Fee (0.5%)`, `Net To Creator`
+
+### Monitor Enable — Degraded Mode on KV Quota Exhaustion
+**Fișier(e)**: `worker/src/monitor/fee-monitor.ts`, `worker/src/index.ts`, `dashboard/src/api.ts`, `dashboard/src/pages/FeePage.tsx`
+**Motiv**: Când KV daily write quota este depășită, activarea monitorului nu trebuie să blocheze UX-ul
+**Adăugat**:
+- `registerWallet()` evită `kv.put` când setările sunt neschimbate (reduce write-uri)
+- La `KV_QUOTA_EXCEEDED`, endpoint-ul `/v1/monitor/register` răspunde cu `ok: true` în mod degradat (`persisted: false`)
+- UI afișează mesaj clar de „Temporary mode” când setările nu pot fi persistate
+- Test ping Telegram rămâne activ, astfel utilizatorul primește confirmare imediată
+
+### KV Quota Hotfix — Reduce Daily Writes
+**Fișier(e)**: `worker/src/index.ts`, `worker/src/alerts/scanner.ts`, `worker/src/monitor/fee-monitor.ts`, `worker/wrangler.toml`
+**Motiv**: `Failed to register wallet: KV put() limit exceeded for the day` cauzat de volum mare de scrieri KV (analytics per request + scan periodic)
+**Adăugat**:
+- Analytics KV pe `/v1/*` dezactivat implicit (activ doar cu `ENABLE_KV_ANALYTICS=1`)
+- Alert scanner redus de la 40 la 10 token-uri pe run
+- Alert scanner scrie în KV doar când scorul s-a schimbat; feed/meta scrise doar când există schimbări
+- Fee monitor persistă wallet state doar dacă s-au schimbat câmpurile relevante
+- Cron schimbat din `*/15 * * * *` în `0 * * * *` pentru reducerea presiunii pe KV
+
+### Monitor Register — KV Parse Hardening
+**Fișier(e)**: `worker/src/monitor/fee-monitor.ts`, `worker/src/index.ts`
+**Motiv**: Activarea Telegram monitor putea eșua cu mesaj generic `Failed to register wallet` când în KV existau date invalide pentru wallet
+**Adăugat**:
+- Parsare robustă pentru intrările `monitor:*` din KV (fallback safe la JSON invalid)
+- `registerWallet()` nu mai cade pe valori corupte; ignoră datele invalide și continuă cu valori default
+- Mesaj de eroare API mai explicit la `/v1/monitor/register` (include detaliu tehnic)
+
+### Telegram Alerts — Enable Flow Feedback + Test Ping
+**Fișier(e)**: `worker/src/index.ts`, `worker/src/notify/telegram.ts`, `dashboard/src/api.ts`, `dashboard/src/pages/FeePage.tsx`
+**Motiv**: La apăsarea butonului Enable în AutoClaim, utilizatorul nu primea feedback clar; în practică părea că „nu se întâmplă nimic”
+**Adăugat**:
+- Endpoint nou `POST /v1/monitor/test` pentru trimitere mesaj Telegram de test imediat după activare
+- Validare explicită pentru `telegramChatId` și eroare clară dacă `TELEGRAM_BOT_TOKEN` nu este configurat pe worker
+- UI feedback în `FeePage`: mesaje vizibile de succes/eroare (nu doar `console.error`)
+- Flux nou la Enable: register monitor + test ping; dacă testul eșuează, utilizatorul vede cauza direct în interfață
+
+### Dashboard — Reduce Worker Request Churn
+**Fișier(e)**: `dashboard/src/api.ts`, `dashboard/src/App.tsx`, `dashboard/src/pages/AlertFeedPage.tsx`, `dashboard/src/pages/FeePage.tsx`
+**Motiv**: Worker request usage creștea din polling în background și din fallback-ul implicit spre API-ul de producție în timpul dezvoltării locale
+**Adăugat**:
+- API fallback în dev către `http://127.0.0.1:8787` (când `VITE_API_URL` nu este setat), pentru a evita lovirea accidentală a worker-ului de producție
+- Polling feed (`Discovery`) condiționat de tab vizibil (`document.visibilityState === 'visible'`)
+- Polling alert feed condiționat de tab vizibil
+- Auto-claim loop condiționat de tab vizibil, ca să nu consume request-uri când pagina e în background
+
 ## 2026-04-13
 ### Dashboard — Discovery + Risk Detail
 **Fișier(e)**: `dashboard/src/App.tsx`, `dashboard/src/api.ts`, `dashboard/src/pages/FeedPage.tsx`, `dashboard/src/pages/RiskDetailPage.tsx`, `dashboard/src/components/RiskDisplay.tsx`, `dashboard/src/components/SearchBar.tsx`

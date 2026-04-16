@@ -1,6 +1,6 @@
 {
   "name": "@sentinel/mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP Server for Sentinel — AI risk intelligence for Bags tokens via Claude Skills",
   "type": "module",
   "main": "dist/index.js",

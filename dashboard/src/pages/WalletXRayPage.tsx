@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { fetchWalletXRay, type XRayResult, type XRayToken } from '../api';
 
 const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -70,13 +70,21 @@ function TokenRow({ token, onView }: { token: XRayToken; onView: (mint: string) 
 
 interface Props {
   onViewToken: (mint: string) => void;
+  connectedWallet: string | null;
 }
 
-export function WalletXRayPage({ onViewToken }: Props) {
+export function WalletXRayPage({ onViewToken, connectedWallet }: Props) {
   const [wallet, setWallet] = useState('');
   const [result, setResult] = useState<XRayResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-fill when wallet connects and input is empty
+  useEffect(() => {
+    if (connectedWallet && !wallet && !result) {
+      setWallet(connectedWallet);
+    }
+  }, [connectedWallet, wallet, result]);
 
   const scan = useCallback(async () => {
     const trimmed = wallet.trim();
@@ -122,7 +130,7 @@ export function WalletXRayPage({ onViewToken }: Props) {
           value={wallet}
           onChange={(e) => setWallet(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Solana wallet address..."
+          placeholder={connectedWallet ? 'Using connected wallet...' : 'Solana wallet address...'}
           className="flex-1 bg-sentinel-surface border border-sentinel-border/50 rounded-lg px-4 py-2.5 text-sm font-mono focus:border-sentinel-accent/50 focus:outline-none placeholder-gray-600"
         />
         <button

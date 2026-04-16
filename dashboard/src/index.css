@@ -5,6 +5,12 @@
 @layer base {
   body {
     @apply bg-sentinel-bg text-white antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-image:
+      linear-gradient(rgba(31, 41, 55, 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(31, 41, 55, 0.4) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-attachment: fixed;
   }
 
   /* Custom scrollbar */

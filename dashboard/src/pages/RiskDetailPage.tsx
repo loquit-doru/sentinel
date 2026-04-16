@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { RiskScore, RiskBreakdown } from '../../../shared/types';
 import { ScoreGauge, TierBadge, BreakdownBar } from '../components/RiskDisplay';
-import { fetchRiskScore } from '../api';
+import { fetchRiskScore, getShareCardUrl, buildTweetUrl, getSharePageUrl } from '../api';
 
 const BREAKDOWN_LABELS: Record<keyof RiskBreakdown, { label: string; icon: string }> = {
   honeypot: { label: 'Honeypot Safety', icon: '🍯' },
@@ -26,6 +26,7 @@ export function RiskDetailPage({ mint, onBack }: { mint: string; onBack: () => v
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const scan = useCallback(() => {
     setLoading(true);
@@ -124,6 +125,41 @@ export function RiskDetailPage({ mint, onBack }: { mint: string; onBack: () => v
                   <p className="text-gray-400 text-sm mt-0.5">{TIER_DESCRIPTIONS[score.tier].desc}</p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Share bar */}
+          <div className="bg-sentinel-surface border border-sentinel-border/60 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Share this score:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={buildTweetUrl(mint, score.score, score.tier, '')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#1d9bf0]/10 text-[#1d9bf0] hover:bg-[#1d9bf0]/20 border border-[#1d9bf0]/20 transition-all"
+              >
+                𝕏 Tweet
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(getSharePageUrl(mint));
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 border border-sentinel-border/50 transition-all"
+              >
+                {linkCopied ? '✓ Copied!' : '🔗 Copy Link'}
+              </button>
+              <a
+                href={getShareCardUrl(mint)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 border border-sentinel-border/50 transition-all"
+              >
+                🖼️ Card
+              </a>
             </div>
           </div>
 

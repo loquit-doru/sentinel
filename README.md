@@ -7,15 +7,18 @@ AI risk intelligence + wallet portfolio scanner for [Bags](https://bags.fm) trad
 **$SENT**: [`Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`](https://bags.fm/token/Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS) — launched on Bags
 
 [![Live Dashboard](https://img.shields.io/badge/Dashboard-Live-06b6d4?style=flat-square)](https://sentinel-dashboard-3uy.pages.dev)
-[![API](https://img.shields.io/badge/API-Live-22c55e?style=flat-square)](https://sentinel-api.apiworkersdev.workers.dev/health)
+[![API](https://img.shields.io/badge/API-v0.7.0-22c55e?style=flat-square)](https://sentinel-api.apiworkersdev.workers.dev/health)
+[![DoraHacks](https://img.shields.io/badge/DoraHacks-BUIDL-purple?style=flat-square)](https://dorahacks.io/buidl/24038)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square)](https://typescriptlang.org)
 
 ---
 
 ## What it does
 
-### Pillar 1 — Risk Scoring Engine (core)
-Real-time risk score **0-100** for any token on Bags. Combines 8 weighted signals from 4 data sources into a single actionable score with tier classification.
+### 12 Pillars — fully implemented & deployed
+
+#### 1. Risk Scoring Engine (core)
+Real-time risk score **0-100** for any token on Bags. Combines 8 weighted signals from 4 data sources.
 
 | Factor | Weight | Source |
 |--------|--------|--------|
@@ -26,18 +29,52 @@ Real-time risk score **0-100** for any token on Bags. Combines 8 weighted signal
 | Top Holder % | 15% | Helius DAS |
 | Liquidity Depth | 10% | Birdeye |
 | Volume Health | 10% | Birdeye |
-| Creator Reputation | 5% | Bags SDK |
+| Creator Reputation | 5% | Bags API |
 
 **Tiers**: 🟢 Safe (70-100) · 🟡 Caution (40-69) · 🔴 Danger (10-39) · ⛔ Rug (0-9)
 
-### Pillar 2 — Wallet X-Ray
-Paste any Solana wallet → instant risk scan of ALL token holdings. Portfolio health score + flagged tokens.
+#### 2. Wallet X-Ray
+Paste any Solana wallet → instant risk scan of ALL holdings. Portfolio health score + flagged tokens.
 
-- Scans all SPL token holdings via Helius RPC
-- Batch risk scoring (up to 20 tokens concurrently)
-- **Portfolio Health** score (0-100, weighted average)
-- Flagged tokens (score < 40) highlighted in red
-- Click any token → full risk breakdown
+#### 3. Auto Fee Optimizer
+Detect unclaimed creator fees, prioritize by risk urgency (critical/warning/safe), build unsigned claim transactions for wallet signing.
+
+#### 4. BagsSwarm Intelligence
+5-agent multi-agent system with BFT-inspired consensus:
+- **RiskAgent** — RugCheck + on-chain risk analysis
+- **VolumeAgent** — Birdeye volume/liquidity health
+- **SentimentAgent** — Social signal + holder distribution
+- **WhaleAgent** — Large holder concentration patterns
+- **CreatorAgent** — Creator track record + reputation
+
+Agents vote independently → 2/3 supermajority consensus → single verdict with confidence score.
+
+#### 5. Campaign OS
+Fee-routing policies for token creators: define allocation splits (buyback, rewards, LP, ops) per token. Track routes + enforce policy compliance.
+
+#### 6. Creator Escrow
+Milestone-based escrow payments for creator collaborations. Lock funds on-chain, release on milestone completion, with dispute resolution flow.
+
+#### 7. Proof Dashboard
+KPI metrics + health score for tokens: fee efficiency, buyback consistency, collaborator payout rate. Transparent proof-of-value for creators.
+
+#### 8. Partner Integration (Bags-native)
+Register as a Bags partner, query partner config + BPS allocation, claim partner fees. Full REST integration with Bags Partner API.
+
+#### 9. $SENT Token Gating
+Premium access tiers based on $SENT holdings (via Helius RPC):
+- **Free**: 0 $SENT — basic features
+- **Holder**: ≥1 $SENT — priority alerts, deeper scans, auto-claim
+- **Whale**: ≥10,000 $SENT — API key, custom webhooks, bulk scanning
+
+#### 10. Alert Feed
+Telegram alerts for risk changes, fee opportunities, and volume spikes. Per-wallet monitor registration with test pings.
+
+#### 11. Autonomous Firewall
+Pre-signature transaction screening — ALLOW / WARN / BLOCK decisions before your wallet signs. Auto-blocks rug-tier tokens, honeypots, and active LP drains. Per-wallet custom rules (whitelist/blocklist), configurable auto-protection settings, screening activity log, global stats.
+
+#### 12. Insurance Pool
+Community-backed rug protection. Stake $SENT in 3 tiers (Backer / Guardian / Whale Shield). File claims when tokens rug — auto-approved if risk score dropped 40+ points or token hit rug-tier. Pool health tracking, per-wallet claim history.
 
 ---
 
@@ -47,6 +84,8 @@ Paste any Solana wallet → instant risk scan of ALL token holdings. Portfolio h
 |---------|-----|
 | Dashboard | [sentinel-dashboard-3uy.pages.dev](https://sentinel-dashboard-3uy.pages.dev) |
 | API | [sentinel-api.apiworkersdev.workers.dev](https://sentinel-api.apiworkersdev.workers.dev/health) |
+| DoraHacks | [dorahacks.io/buidl/24038](https://dorahacks.io/buidl/24038) |
+| $SENT Token | [bags.fm/token/Az1LWL...](https://bags.fm/token/Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS) |
 
 ---
 
@@ -54,36 +93,147 @@ Paste any Solana wallet → instant risk scan of ALL token holdings. Portfolio h
 
 ```
 sentinel/
-├── worker/      → Cloudflare Workers + Hono (API backend)
-├── dashboard/   → React 18 + Vite + TailwindCSS
-├── mcp-server/  → MCP Server for Claude Skills
-└── shared/      → TypeScript types + constants
+├── worker/                      → Cloudflare Workers + Hono (API backend)
+│   └── src/
+│       ├── risk/engine.ts       → 8-signal risk scoring
+│       ├── portfolio/scanner.ts → Wallet X-Ray (batch risk)
+│       ├── fees/                → Smart fees + Bags fee integration
+│       ├── trade/swap.ts        → Trade quotes via Bags
+│       ├── swarm/               → 5-agent BFT consensus engine
+│       ├── campaign/            → Fee routing + policy enforcement
+│       ├── escrow/              → Milestone-based escrow
+│       ├── proof/               → KPI metrics + health scoring
+│       ├── partner/             → Bags partner REST integration
+│       ├── gate/                → $SENT token gating (Helius RPC)
+│       ├── app-store/           → App store metadata + fee-share config
+│       ├── alerts/              → Risk alert scanner
+│       ├── monitor/             → Fee monitor + Telegram
+│       ├── creator/             → Creator reputation profiler
+│       └── badge/               → SVG risk badge generator
+├── dashboard/                   → React 18 + Vite + TailwindCSS
+│   └── src/pages/
+│       ├── RiskPage.tsx         → Risk scoring + discovery
+│       ├── XRayPage.tsx         → Wallet X-Ray
+│       ├── FeesPage.tsx         → Fee optimizer + claims
+│       ├── SwarmPage.tsx        → Multi-agent consensus
+│       ├── CampaignPage.tsx     → Campaign fee routing
+│       ├── EscrowPage.tsx       → Creator escrow
+│       ├── ProofPage.tsx        → Proof-of-value dashboard
+│       └── BagsNativePage.tsx   → Partner + token gate + app store
+├── mcp-server/                  → MCP Server (23 Claude tools)
+└── shared/                      → TypeScript types + constants
 ```
 
-### API Endpoints
+### API Endpoints (48 routes)
 
+#### Risk & Discovery
 | Method | Route | Purpose |
 |--------|-------|---------|
-| GET | `/health` | Service status |
-| GET | `/stats` | API usage analytics |
 | GET | `/v1/risk/:mint` | Risk score (0-100) for any token |
 | GET | `/v1/tokens/feed` | Top tokens by lifetime fees |
 | GET | `/v1/portfolio/:wallet` | Wallet X-Ray (all holdings + risk) |
+| GET | `/v1/creator/:wallet` | Creator reputation profile |
+
+#### Fees & Claims
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/v1/fees/:wallet` | Claimable fee positions |
+| POST | `/v1/fees/claim` | Build claim transactions |
+| GET | `/v1/fees/:wallet/smart` | Risk-aware fee urgency snapshot |
+| POST | `/v1/claims/prepare` | Create pending claim bundle (TTL) |
+| GET | `/v1/claims/:claimId` | Read pending claim bundle |
+| POST | `/v1/claims/:claimId/done` | Mark claim complete |
+
+#### Swarm Intelligence
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/v1/swarm/analyze` | Full 5-agent consensus analysis |
+| POST | `/v1/swarm/quick` | Fast 2-agent preliminary scan |
+| GET | `/v1/swarm/agents` | List available agents + descriptions |
+
+#### Campaign OS & Escrow
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/v1/campaign/policy` | Set fee routing policy for a token |
+| GET | `/v1/campaign/policy/:mint` | Get active policy |
+| POST | `/v1/campaign/route` | Route fees per policy |
+| GET | `/v1/campaign/routes/:mint` | Route history |
+| POST | `/v1/escrow/create` | Create milestone escrow |
+| GET | `/v1/escrow/:id` | Get escrow details |
+| POST | `/v1/escrow/:id/release` | Release milestone payment |
+| POST | `/v1/escrow/:id/dispute` | Raise dispute |
+| GET | `/v1/proof/:wallet` | Proof-of-value KPI snapshot |
+
+#### Bags-Native Integration
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/v1/partner/:wallet` | Partner config + BPS |
+| POST | `/v1/partner/register` | Create partner registration tx |
+| GET | `/v1/partner/:wallet/stats` | Partner claim stats |
+| POST | `/v1/partner/:wallet/claim` | Get partner claim txs |
+| GET | `/v1/gate/:wallet` | Check $SENT token gate |
+| POST | `/v1/gate/check` | Verify access tier |
+| GET | `/v1/app/info` | App store metadata |
+| GET | `/v1/app/fee-share` | $SENT fee-share target config |
+#### Autonomous Firewall
+| Method | Route | Purpose |
+|--------|-------|--------|
+| POST | `/v1/firewall/screen` | Screen transaction → ALLOW/WARN/BLOCK |
+| GET | `/v1/firewall/:wallet/config` | Wallet firewall config + rules |
+| POST | `/v1/firewall/:wallet/rules` | Add whitelist/blocklist rule |
+| DELETE | `/v1/firewall/:wallet/rules/:ruleId` | Remove rule |
+| PATCH | `/v1/firewall/:wallet/settings` | Toggle auto-block settings |
+| GET | `/v1/firewall/stats` | Global screening stats |
+| GET | `/v1/firewall/:wallet/log` | Wallet screening activity log |
+
+#### Insurance Pool
+| Method | Route | Purpose |
+|--------|-------|--------|
+| GET | `/v1/insurance/pool` | Pool stats + health |
+| GET | `/v1/insurance/commitments` | All backers/commitments |
+| POST | `/v1/insurance/commit` | Pledge $SENT to pool |
+| POST | `/v1/insurance/claim` | File insurance claim |
+| GET | `/v1/insurance/claims/:wallet` | Wallet claim history |
+| GET | `/v1/insurance/claims` | Recent claims feed |
+#### Monitoring & System
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/v1/monitor/register` | Register wallet + Telegram target |
+| POST | `/v1/monitor/test` | Send Telegram test ping |
+| DELETE | `/v1/monitor/:wallet` | Unregister monitor |
+| GET | `/health` | Service status |
+| GET | `/stats` | API usage analytics |
 
 ### Stack
 
-- **Backend**: Cloudflare Workers + Hono
+- **Backend**: Cloudflare Workers + Hono v4.7
 - **Frontend**: React 18 + Vite + TailwindCSS
-- **Blockchain**: @solana/web3.js + @bagsfm/bags-sdk
-- **Risk Data**: RugCheck API + Birdeye API + Helius DAS
-- **Cache**: Cloudflare KV (60s risk, 30s feed/fees)
-- **Analytics**: Plausible + internal KV tracking
+- **Blockchain**: @solana/web3.js + @bagsfm/bags-sdk v1.3.7
+- **Risk Data**: RugCheck API + Birdeye API + Helius DAS + RPC
+- **Cache**: Cloudflare KV (60s risk, 5min fees, 5min gate)
+- **MCP**: Model Context Protocol — 23 tools for Claude
+- **Analytics**: KV-based tracking (`ENABLE_KV_ANALYTICS=1`)
+
+---
+
+## $SENT Token Economics
+
+Fee-share target configuration:
+
+| Allocation | % | BPS |
+|-----------|---|-----|
+| Creator (Sentinel) | 40% | 4000 |
+| Holders Reward | 30% | 3000 |
+| Dev Fund | 20% | 2000 |
+| Partner (Bags) | 10% | 1000 |
+
+Access tiers unlock premium features based on $SENT holdings — no subscriptions, just hold the token.
 
 ---
 
 ## Claude Skills (MCP Server)
 
-Sentinel exposes its risk intelligence as Claude tools via the [Model Context Protocol](https://modelcontextprotocol.io).
+Sentinel exposes **23 tools** via the [Model Context Protocol](https://modelcontextprotocol.io) for AI-native integration.
 
 ### Available Tools
 
@@ -92,7 +242,26 @@ Sentinel exposes its risk intelligence as Claude tools via the [Model Context Pr
 | `get_risk_score` | Risk score (0-100) for any Solana token |
 | `get_trending_tokens` | Top tokens by lifetime fees on Bags |
 | `get_claimable_fees` | Unclaimed fees for a wallet |
+| `get_smart_fees` | Risk-weighted fee urgency snapshot |
 | `compare_tokens` | Side-by-side risk comparison (2-5 tokens) |
+| `get_wallet_xray` | Portfolio health + flagged holdings |
+| `get_creator_profile` | Creator reputation + rug signals |
+| `get_swap_quote` | Trade quotes via Bags |
+| `run_swarm_analysis` | Full 5-agent consensus analysis |
+| `run_quick_scan` | Fast 2-agent scan |
+| `list_swarm_agents` | List available agents |
+| `set_campaign_policy` | Set fee routing policy |
+| `get_campaign_policy` | Query active policy |
+| `route_campaign_fees` | Route fees per policy |
+| `create_escrow` | Create milestone escrow |
+| `get_escrow` | Query escrow details |
+| `release_escrow` | Release milestone payment |
+| `get_proof_snapshot` | Token health KPI metrics |
+| `get_partner_config` | Bags partner status + fee stats |
+| `check_token_gate` | $SENT holding tier check |
+| `get_app_info` | App store metadata |
+| `get_sent_fee_share` | Token fee-share allocation |
+| `get_service_status` | API health + usage stats |
 
 ### Setup in Claude Desktop
 
@@ -103,22 +272,31 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "sentinel": {
       "command": "node",
-      "args": ["C:/Users/YOU/sentinel/mcp-server/dist/index.js"]
+      "args": ["C:/path/to/sentinel/mcp-server/dist/index.js"]
     }
   }
 }
 ```
 
-Then ask Claude: *"How risky is token DezXAZ...B263?"* or *"Show me trending tokens on Bags"*
+Example prompts:
+- *"How risky is token DezXAZ...B263?"*
+- *"Run a swarm analysis on this token"*
+- *"Check my wallet X-Ray for flagged tokens"*
+- *"What's my $SENT tier?"*
 
 ---
 
-## Bags Integration
+## Bags Integration (native)
 
-- **Bags API**: Token feed (lifetime fees, creators), claimable positions
-- **Bags SDK**: Partner registration, fee-share config
-- **Risk Scoring**: RugCheck + Birdeye + Helius → 8 weighted signals → score 0-100
-- **Wallet X-Ray**: Helius RPC → all holdings → batch risk scoring → portfolio health
+Sentinel is built Bags-native — deep integration at every layer:
+
+- **Bags API**: Token feed (lifetime fees, creators), claimable positions, claim tx builder, trade quotes
+- **Bags Partner**: On-chain partner registration, BPS allocation, fee claiming
+- **$SENT on Bags**: Token launched on Bags, fee-share config (40/30/20/10 split)
+- **Token Gating**: $SENT-based premium tiers via Helius RPC balance checks
+- **Risk Engine**: Feeds RugCheck + Birdeye + Helius signals into Bags token context
+- **MCP + Bags**: AI agents can query risk, fees, swarm, and partner data via Claude tools
+- **App Store**: Ready for bags.fm/apply submission with full metadata
 
 ---
 
@@ -138,9 +316,6 @@ npm --workspaces run check
 # Deploy
 npm run deploy:worker
 npm run deploy:dashboard
-
-# Tests
-npm --workspace worker run test   # 17 tests
 ```
 
 ### Environment Variables
@@ -151,6 +326,8 @@ Create `worker/.dev.vars` for local development:
 BAGS_API_KEY=your_bags_api_key
 HELIUS_API_KEY=your_helius_api_key
 BIRDEYE_API_KEY=your_birdeye_api_key
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+ENABLE_KV_ANALYTICS=0
 ```
 
 Get API keys from:
