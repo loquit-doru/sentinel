@@ -40,10 +40,12 @@ export async function fetchWalletXRay(wallet: string): Promise<XRayResult> {
 
 // ── Risk ─────────────────────────────────────────────────
 
-export async function fetchRiskScore(mint: string): Promise<RiskScore> {
+export async function fetchRiskScore(mint: string, wallet?: string | null): Promise<RiskScore> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}/risk/${mint}`);
+    res = await fetch(`${BASE}/risk/${mint}`, {
+      headers: wallet ? { 'x-wallet': wallet } : undefined,
+    });
   } catch (err) {
     throw new Error(`Network error: ${err instanceof Error ? err.message : 'fetch failed'}`);
   }
@@ -912,11 +914,11 @@ export async function fetchInsurancePool(): Promise<InsurancePoolStats> {
   return body.data;
 }
 
-export async function commitToInsurance(wallet: string, amountSent: number): Promise<{ commitment: InsuranceCommitment; poolStats: InsurancePoolStats }> {
+export async function commitToInsurance(wallet: string, amountSent: number, txSignature: string): Promise<{ commitment: InsuranceCommitment; poolStats: InsurancePoolStats }> {
   const res = await fetch(`${BASE}/insurance/commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallet, amountSent }),
+    body: JSON.stringify({ wallet, amountSent, txSignature }),
   });
   const body: ApiResponse<{ commitment: InsuranceCommitment; poolStats: InsurancePoolStats }> = await res.json();
   if (!body.ok || !body.data) throw new Error(body.error ?? 'Failed to commit');

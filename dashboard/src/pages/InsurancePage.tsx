@@ -1,4 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  getAccount,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 import {
   fetchInsurancePool,
   commitToInsurance,
@@ -10,6 +19,7 @@ import type {
   InsurancePoolStats,
   InsuranceClaim,
 } from '../api';
+import { SENT_MINT, INSURANCE_POOL_WALLET } from '../../../shared/constants';
 
 function statusBadge(s: InsuranceClaim['status']) {
   if (s === 'approved') return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">Approved</span>;
@@ -33,6 +43,8 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
 }
 
 export function InsurancePage({ connectedWallet }: { connectedWallet: string | null }) {
+  const { signTransaction } = useWallet();
+  const { connection } = useConnection();
   const [tab, setTab] = useState<'pool' | 'commit' | 'claim' | 'history'>('pool');
 
   const [pool, setPool] = useState<InsurancePoolStats | null>(null);
@@ -43,7 +55,9 @@ export function InsurancePage({ connectedWallet }: { connectedWallet: string | n
   // Commit form
   const [commitAmount, setCommitAmount] = useState('1000');
   const [committing, setCommitting] = useState(false);
+  const [commitStep, setCommitStep] = useState<'idle' | 'building' | 'signing' | 'confirming' | 'verifying'>('idle');
   const [commitResult, setCommitResult] = useState<string | null>(null);
+  const [commitTxSig, setCommitTxSig] = useState<string | null>(null);
 
   // Claim form
   const [claimMint, setClaimMint] = useState('');
@@ -71,21 +85,76 @@ export function InsurancePage({ connectedWallet }: { connectedWallet: string | n
     }
   }, [connectedWallet, tab]);
 
-  const doCommit = async () => {
-    if (!connectedWallet) return;
+  const doCommit = useCallback(async () => {
+    if (!connectedWallet || !signTransaction) return;
     const amount = parseFloat(commitAmount);
     if (!amount || amount <= 0) return;
+
     setCommitting(true);
     setCommitResult(null);
+    setCommitTxSig(null);
+
     try {
-      const { commitment, poolStats } = await commitToInsurance(connectedWallet, amount);
+      // 1. Build SPL token transfer: user → pool wallet
+      setCommitStep('building');
+      const senderPubkey = new PublicKey(connectedWallet);
+      const poolPubkey = new PublicKey(INSURANCE_POOL_WALLET);
+      const mintPubkey = new PublicKey(SENT_MINT);
+
+      const senderAta = await getAssociatedTokenAddress(mintPubkey, senderPubkey);
+      const poolAta = await getAssociatedTokenAddress(mintPubkey, poolPubkey);
+
+      // Check if sender has token account
+      try {
+        await getAccount(connection, senderAta);
+      } catch {
+        throw new Error('No $SENT token account found. You need $SENT tokens to commit.');
+      }
+
+      // Build transfer instruction ($SENT has 9 decimals on Bags)
+      const rawAmount = BigInt(Math.round(amount * 1e9));
+      const transferIx = createTransferInstruction(
+        senderAta,
+        poolAta,
+        senderPubkey,
+        rawAmount,
+        [],
+        TOKEN_PROGRAM_ID,
+      );
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const tx = new Transaction().add(transferIx);
+      tx.feePayer = senderPubkey;
+      tx.recentBlockhash = blockhash;
+
+      // 2. User signs
+      setCommitStep('signing');
+      const signed = await signTransaction(tx);
+
+      // 3. Send + confirm on-chain
+      setCommitStep('confirming');
+      const rawTx = signed.serialize();
+      const sig = await connection.sendRawTransaction(rawTx, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+      await connection.confirmTransaction(
+        { signature: sig, blockhash, lastValidBlockHeight },
+        'confirmed',
+      );
+
+      // 4. Register commitment on backend (backend re-verifies tx)
+      setCommitStep('verifying');
+      const { commitment, poolStats } = await commitToInsurance(connectedWallet, amount, sig);
       setPool(poolStats);
-      setCommitResult(`Committed ${commitment.amountSent.toLocaleString()} $SENT as ${tierLabel(commitment.tier)}`);
+      setCommitTxSig(sig);
+      setCommitResult(`Committed ${commitment.amountSent.toLocaleString()} $SENT as ${tierLabel(commitment.tier)} — on-chain ✅`);
     } catch (err) {
       setCommitResult(err instanceof Error ? err.message : 'Failed to commit');
     }
     setCommitting(false);
-  };
+    setCommitStep('idle');
+  }, [connectedWallet, signTransaction, commitAmount, connection]);
 
   const doClaim = async () => {
     if (!connectedWallet) { setClaimError('Connect wallet'); return; }
@@ -226,8 +295,8 @@ export function InsurancePage({ connectedWallet }: { connectedWallet: string | n
             <>
               <div className="p-4 rounded-xl border border-sentinel-border/40 bg-sentinel-surface/20 space-y-3">
                 <p className="text-sm text-gray-300">
-                  Pledge $SENT tokens to back the rug protection pool. Commitments signal intent to
-                  cover community losses from verified rug pulls on Bags.
+                  Commit $SENT tokens to back the rug protection pool. Tokens are transferred on-chain
+                  to the pool wallet and verified by the backend.
                 </p>
                 <div className="flex gap-3">
                   <input
@@ -235,28 +304,51 @@ export function InsurancePage({ connectedWallet }: { connectedWallet: string | n
                     placeholder="Amount ($SENT)"
                     value={commitAmount}
                     onChange={e => setCommitAmount(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-sentinel-surface/40 border border-sentinel-border/50 rounded-xl text-white text-sm focus:outline-none focus:border-sentinel-accent/50"
+                    disabled={committing}
+                    className="flex-1 px-4 py-3 bg-sentinel-surface/40 border border-sentinel-border/50 rounded-xl text-white text-sm focus:outline-none focus:border-sentinel-accent/50 disabled:opacity-50"
                   />
                   <button
                     onClick={doCommit}
-                    disabled={committing}
+                    disabled={committing || !signTransaction}
                     className="px-6 py-3 bg-sentinel-accent hover:bg-sentinel-accent-dim text-white font-semibold rounded-xl text-sm transition-all disabled:opacity-50"
                   >
-                    {committing ? 'Committing...' : 'Back Pool'}
+                    {committing
+                      ? commitStep === 'building' ? 'Building tx...'
+                      : commitStep === 'signing' ? 'Sign in wallet...'
+                      : commitStep === 'confirming' ? 'Confirming...'
+                      : commitStep === 'verifying' ? 'Verifying...'
+                      : 'Processing...'
+                      : 'Back Pool'}
                   </button>
                 </div>
                 <div className="flex gap-2">
                   {['1000', '10000', '50000', '100000'].map(v => (
                     <button key={v} onClick={() => setCommitAmount(v)}
-                      className="px-3 py-1.5 text-[10px] rounded-lg border border-sentinel-border/30 text-gray-400 hover:text-white hover:border-sentinel-accent/30 transition-all">
+                      disabled={committing}
+                      className="px-3 py-1.5 text-[10px] rounded-lg border border-sentinel-border/30 text-gray-400 hover:text-white hover:border-sentinel-accent/30 transition-all disabled:opacity-50">
                       {Number(v).toLocaleString()}
                     </button>
                   ))}
                 </div>
+                <p className="text-[10px] text-gray-600">
+                  Pool wallet: <span className="font-mono text-gray-500">{INSURANCE_POOL_WALLET.slice(0, 8)}...{INSURANCE_POOL_WALLET.slice(-4)}</span>
+                </p>
               </div>
               {commitResult && (
-                <div className="p-3 rounded-xl border border-sentinel-accent/30 bg-sentinel-accent/5 text-sm text-sentinel-accent">
-                  {commitResult}
+                <div className={`p-3 rounded-xl border text-sm ${
+                  commitTxSig ? 'border-sentinel-accent/30 bg-sentinel-accent/5 text-sentinel-accent' : 'border-sentinel-danger/30 bg-sentinel-danger/5 text-sentinel-danger'
+                }`}>
+                  <p>{commitResult}</p>
+                  {commitTxSig && (
+                    <a
+                      href={`https://solscan.io/tx/${commitTxSig}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-sentinel-accent/70 hover:text-sentinel-accent mt-1 inline-block font-mono"
+                    >
+                      {commitTxSig.slice(0, 16)}... → Solscan ↗
+                    </a>
+                  )}
                 </div>
               )}
             </>

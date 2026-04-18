@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { fetchWalletXRay, type XRayResult, type XRayToken } from '../api';
 
 const SOLANA_ADDR_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -78,6 +78,7 @@ export function WalletXRayPage({ onViewToken, connectedWallet }: Props) {
   const [result, setResult] = useState<XRayResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoScannedWallet = useRef<string | null>(null);
 
   // Auto-fill when wallet connects and input is empty
   useEffect(() => {
@@ -106,6 +107,20 @@ export function WalletXRayPage({ onViewToken, connectedWallet }: Props) {
       setLoading(false);
     }
   }, [wallet]);
+
+  // Auto-scan once when wallet is auto-filled from connected wallet
+  useEffect(() => {
+    if (
+      connectedWallet &&
+      wallet === connectedWallet &&
+      !result &&
+      !loading &&
+      autoScannedWallet.current !== connectedWallet
+    ) {
+      autoScannedWallet.current = connectedWallet;
+      scan();
+    }
+  }, [wallet, connectedWallet, result, loading, scan]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') scan();

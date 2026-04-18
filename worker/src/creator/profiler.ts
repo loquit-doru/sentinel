@@ -1,26 +1,27 @@
 /**
  * Creator Reputation Profiler
  *
- * Given a creator wallet, aggregates all their tokens from Bags,
+ * Given a creator wallet, aggregates all their tokens via Helius DAS searchAssets,
  * scores each one, and computes a reputation score.
  */
 
 import type { Env } from '../index';
 import type { CreatorProfile, CreatorToken, RiskTier } from '../../../shared/types';
 import { tierFromScore } from '../../../shared/types';
-import { BAGS_API_BASE, RUGCHECK_API_BASE } from '../../../shared/constants';
+import { HELIUS_RPC_BASE } from '../../../shared/constants';
 import { computeRiskScore } from '../risk/engine';
-import { fetchRugCheckReport } from '../risk/rugcheck';
 
 const MAX_TOKENS_PER_CREATOR = 20;
 const CREATOR_CACHE_TTL = 600; // 10 minutes
 
-interface RugCheckCreatorToken {
-  mint: string;
-  name: string;
-  symbol: string;
-  rugged: boolean;
-  score_normalised: number;
+interface HeliusCreatorAsset {
+  id: string;
+  content?: {
+    metadata?: {
+      name?: string;
+      symbol?: string;
+    };
+  };
 }
 
 /**
@@ -33,9 +34,7 @@ export async function buildCreatorProfile(
   wallet: string,
   env: Env,
 ): Promise<CreatorProfile> {
-  // RugCheck has a /creator/:wallet endpoint that lists tokens by creator
-  // If that fails, fall back to fetching the Bags feed and filtering
-  const creatorTokens = await fetchCreatorTokens(wallet);
+  const creatorTokens = await fetchCreatorTokens(wallet, env.HELIUS_API_KEY);
 
   const batch = creatorTokens.slice(0, MAX_TOKENS_PER_CREATOR);
 
@@ -54,24 +53,22 @@ export async function buildCreatorProfile(
           symbol: t.symbol,
           riskScore: riskScore.score,
           riskTier: riskScore.tier,
-          rugged: t.rugged,
+          rugged: riskScore.tier === 'rug',
           createdAt: 0,
           lifetimeFees: 0,
         };
         return ct;
       } catch {
-        // If scoring fails, use RugCheck normalized score
-        const ct: CreatorToken = {
+        return {
           mint: t.mint,
           name: t.name,
           symbol: t.symbol,
-          riskScore: t.score_normalised,
-          riskTier: tierFromScore(t.score_normalised),
-          rugged: t.rugged,
+          riskScore: 50,
+          riskTier: tierFromScore(50) as RiskTier,
+          rugged: false,
           createdAt: 0,
           lifetimeFees: 0,
-        };
-        return ct;
+        } satisfies CreatorToken;
       }
     }),
   );
@@ -119,31 +116,49 @@ export async function buildCreatorProfile(
 }
 
 /**
- * Fetch tokens created by a wallet using RugCheck API.
+ * Fetch fungible tokens created by a wallet using Helius DAS searchAssets.
  */
-async function fetchCreatorTokens(wallet: string): Promise<RugCheckCreatorToken[]> {
-  try {
-    // RugCheck doesn't have a direct /creator endpoint in public API
-    // But we can search tokens and filter by creator
-    // For now, use the /tokens/recently-created endpoint or direct search
-    // Alternative: use Helius DAS to find tokens where creator = wallet
+async function fetchCreatorTokens(
+  wallet: string,
+  apiKey: string | undefined,
+): Promise<Array<{ mint: string; name: string; symbol: string }>> {
+  if (!apiKey) return [];
 
-    // Strategy: Helius getAssetsByCreator
-    // This is the most reliable way
-    const res = await fetch(`${RUGCHECK_API_BASE}/creator/${wallet}/tokens`, {
+  try {
+    const res = await fetch(`${HELIUS_RPC_BASE}/?api-key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'sentinel-creator',
+        method: 'searchAssets',
+        params: {
+          creatorAddress: wallet,
+          tokenType: 'fungible',
+          page: 1,
+          limit: MAX_TOKENS_PER_CREATOR,
+        },
+      }),
       signal: AbortSignal.timeout(15_000),
     });
 
-    if (res.ok) {
-      const data = await res.json() as RugCheckCreatorToken[];
-      if (Array.isArray(data)) return data;
+    if (!res.ok) {
+      console.warn(`Helius searchAssets returned ${res.status} for creator ${wallet}`);
+      return [];
     }
 
-    // Fallback: empty array (creator not indexed yet)
-    console.warn(`RugCheck creator lookup returned ${res.status} for ${wallet}`);
-    return [];
+    const json = await res.json() as { result?: { items?: HeliusCreatorAsset[] } };
+    const items = json.result?.items ?? [];
+
+    return items
+      .filter((a): a is HeliusCreatorAsset & { id: string } => typeof a.id === 'string' && a.id.length >= 32)
+      .map((a) => ({
+        mint: a.id,
+        name: a.content?.metadata?.name ?? 'Unknown',
+        symbol: a.content?.metadata?.symbol ?? '???',
+      }));
   } catch (err) {
-    console.error('Creator token fetch failed:', err);
+    console.error('Helius creator search failed:', err);
     return [];
   }
 }

@@ -11,6 +11,7 @@
     "deploy": "vite build && npx wrangler pages deploy dist --project-name sentinel-dashboard --branch production --commit-dirty=true"
   },
   "dependencies": {
+    "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-phantom": "^0.9.29",
     "@solana/wallet-adapter-react": "^0.15.39",

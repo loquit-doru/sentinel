@@ -39,3 +39,7 @@ export const HELIUS_FREE_CREDITS = 50_000; // per month
 // ── $SENT Token ──────────────────────────────────────────
 
 export const SENT_MINT = 'Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS';
+
+// ── Insurance Pool ───────────────────────────────────────
+
+export const INSURANCE_POOL_WALLET = '4a6fi8i4Lr1TKNMUmProRzr958X4w6ErhCaui92QXFva';

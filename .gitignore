@@ -3,6 +3,7 @@ dist/
 .wrangler/
 .dev.vars
 .env
+.keys/
 *.log
 .DS_Store
 Thumbs.db

@@ -21,7 +21,7 @@ const TIER_DESCRIPTIONS: Record<string, { title: string; desc: string }> = {
   rug: { title: 'Likely Scam', desc: 'Critical risk indicators. Extremely high probability of rug pull.' },
 };
 
-export function RiskDetailPage({ mint, onBack }: { mint: string; onBack: () => void }) {
+export function RiskDetailPage({ mint, onBack, connectedWallet }: { mint: string; onBack: () => void; connectedWallet?: string | null }) {
   const [score, setScore] = useState<RiskScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +31,11 @@ export function RiskDetailPage({ mint, onBack }: { mint: string; onBack: () => v
   const scan = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetchRiskScore(mint)
+    fetchRiskScore(mint, connectedWallet)
       .then(setScore)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [mint]);
+  }, [mint, connectedWallet]);
 
   useEffect(() => { scan(); }, [scan]);
 

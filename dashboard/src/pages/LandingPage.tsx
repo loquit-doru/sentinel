@@ -243,7 +243,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
         <div className="max-w-4xl mx-auto flex items-center justify-between text-[11px] text-gray-600">
           <div className="flex items-center gap-2">
             <SentinelLogo size={14} />
-            <span>Sentinel v0.9.0 — AI Risk Intelligence for Bags</span>
+            <span>Sentinel v0.13.0 — AI Risk Intelligence for Bags</span>
           </div>
           <a href="https://bags.fm" target="_blank" rel="noopener" className="text-sentinel-accent/60 hover:text-sentinel-accent transition-colors">
             bags.fm ↗

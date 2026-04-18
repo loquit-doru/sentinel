@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { computeRiskScore } from './risk/engine';
 import { fetchTopTokens } from './feed/bags';
+import { tierFromScore } from '../../shared/types';
+import type { TokenFeedItem, RiskScore } from '../../shared/types';
 import { fetchClaimablePositions, fetchClaimTransactions } from './fees/bags-fees';
 import { fetchSmartFees } from './fees/smart-fees';
 import { createTokenInfo, createLaunchTransaction, createFeeShareConfig } from './token/launch';
@@ -777,7 +779,7 @@ app.get('/v1/tokens/feed', async (c) => {
 
   // Check KV cache (30s TTL for feed)
   if (kv) {
-    const cached = await kv.get('feed:top', 'json');
+    const cached = await kv.get('feed:top-scored', 'json');
     if (cached) {
       return c.json({ ok: true, data: cached }, 200, { 'x-cache': 'HIT' });
     }
@@ -786,13 +788,16 @@ app.get('/v1/tokens/feed', async (c) => {
   try {
     const tokens = await fetchTopTokens(c.env.BAGS_API_KEY);
 
+    // Enrich with cached risk scores from KV
+    const enriched = kv ? await enrichFeedWithRisk(tokens, kv) : tokens;
+
     if (kv) {
       c.executionCtx.waitUntil(
-        kv.put('feed:top', JSON.stringify(tokens), { expirationTtl: 30 }),
+        kv.put('feed:top-scored', JSON.stringify(enriched), { expirationTtl: 30 }),
       );
     }
 
-    return c.json({ ok: true, data: tokens }, 200, { 'x-cache': 'MISS' });
+    return c.json({ ok: true, data: enriched }, 200, { 'x-cache': 'MISS' });
   } catch (err) {
     console.error('Token feed error:', err);
     return c.json({ ok: false, error: 'Failed to fetch token feed' }, 500);
@@ -1508,16 +1513,22 @@ app.get('/v1/insurance/commitments', async (c) => {
 });
 
 app.post('/v1/insurance/commit', async (c) => {
-  let body: { wallet?: string; amountSent?: number };
+  let body: { wallet?: string; amountSent?: number; txSignature?: string };
   try { body = await c.req.json(); } catch { return c.json({ ok: false, error: 'Invalid JSON body' }, 400); }
   if (!body.wallet || !SOLANA_ADDR_RE.test(body.wallet)) return c.json({ ok: false, error: 'Invalid wallet' }, 400);
   if (typeof body.amountSent !== 'number' || body.amountSent <= 0) return c.json({ ok: false, error: 'amountSent must be a positive number' }, 400);
+  if (!body.txSignature || typeof body.txSignature !== 'string') return c.json({ ok: false, error: 'txSignature is required' }, 400);
 
   const kv = c.env.SENTINEL_KV;
   if (!kv) return c.json({ ok: false, error: 'KV not configured' }, 500);
 
-  const result = await commitToPool(body.wallet, body.amountSent, kv);
-  return c.json({ ok: true, data: result });
+  try {
+    const result = await commitToPool(body.wallet, body.amountSent, kv, c.env.HELIUS_API_KEY, body.txSignature);
+    return c.json({ ok: true, data: result });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Commit failed';
+    return c.json({ ok: false, error: msg }, 400);
+  }
 });
 
 app.post('/v1/insurance/claim', async (c) => {
@@ -1562,6 +1573,50 @@ app.get('/v1/insurance/claims', async (c) => {
   return c.json({ ok: true, data: claims });
 });
 
+// ── Feed Risk Enrichment ──────────────────────────────────
+
+/** Enrich feed tokens with cached risk scores from KV (no external API calls) */
+async function enrichFeedWithRisk(
+  tokens: TokenFeedItem[],
+  kv: KVNamespace,
+): Promise<TokenFeedItem[]> {
+  const keys = tokens.map((t) => `risk:${t.mint}`);
+  const results = await Promise.all(keys.map((k) => kv.get(k, 'json').catch(() => null)));
+  return tokens.map((token, i) => {
+    const cached = results[i] as RiskScore | null;
+    if (cached) {
+      return { ...token, riskScore: cached.score, riskTier: cached.tier };
+    }
+    return token;
+  });
+}
+
+/** Pre-compute risk scores for top feed tokens (called from cron) */
+async function precomputeFeedRiskScores(env: Env): Promise<void> {
+  const kv = env.SENTINEL_KV;
+  if (!kv) return;
+
+  const tokens = await fetchTopTokens(env.BAGS_API_KEY);
+  // Limit to top 20 to stay within CPU/rate limits
+  const batch = tokens.slice(0, 20);
+
+  for (const token of batch) {
+    // Skip if already cached
+    const existing = await kv.get(`risk:${token.mint}`);
+    if (existing) continue;
+
+    try {
+      const score = await computeRiskScore(token.mint, {
+        HELIUS_API_KEY: env.HELIUS_API_KEY,
+        BIRDEYE_API_KEY: env.BIRDEYE_API_KEY,
+      });
+      await kv.put(`risk:${token.mint}`, JSON.stringify(score), { expirationTtl: 300 });
+    } catch (err) {
+      console.error(`Feed risk precompute failed for ${token.mint}:`, err);
+    }
+  }
+}
+
 // ── Export with Cron Support ─────────────────────────────
 
 export default {
@@ -1571,6 +1626,9 @@ export default {
 
     ctx.waitUntil(
       Promise.all([
+        // Pre-compute risk scores for top feed tokens
+        precomputeFeedRiskScores(env).catch((err) => console.error('Feed risk precompute failed:', err)),
+
         // Alert scan — broadcast LP drain alerts to Telegram channel if configured
         runAlertScan(env).then(async (newAlerts) => {
           if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_ALERT_CHANNEL_ID) return;

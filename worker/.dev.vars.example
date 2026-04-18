@@ -1,0 +1,19 @@
+# Sentinel Worker — Environment Variables
+# Copy to .dev.vars and fill in your keys
+
+# Risk data sources
+HELIUS_API_KEY=
+BIRDEYE_API_KEY=
+
+# Bags integration
+BAGS_API_KEY=
+
+# Telegram alerts (optional)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_ALERT_CHANNEL_ID=
+
+# AI Swarm (optional)
+ANTHROPIC_API_KEY=
+
+# Analytics (disabled by default)
+ENABLE_KV_ANALYTICS=0

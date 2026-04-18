@@ -7,7 +7,8 @@ AI risk intelligence + wallet portfolio scanner for [Bags](https://bags.fm) trad
 **$SENT**: [`Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS`](https://bags.fm/token/Az1LWLGFs63XscCQGeZyn5qVV31SRKtYn53hMB6bBAGS) — launched on Bags
 
 [![Live Dashboard](https://img.shields.io/badge/Dashboard-Live-06b6d4?style=flat-square)](https://sentinel-dashboard-3uy.pages.dev)
-[![API](https://img.shields.io/badge/API-v0.7.0-22c55e?style=flat-square)](https://sentinel-api.apiworkersdev.workers.dev/health)
+[![API](https://img.shields.io/badge/API-v0.13.0-22c55e?style=flat-square)](https://sentinel-api.apiworkersdev.workers.dev/health)
+[![CI](https://github.com/loquit-doru/sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/loquit-doru/sentinel/actions)
 [![DoraHacks](https://img.shields.io/badge/DoraHacks-BUIDL-purple?style=flat-square)](https://dorahacks.io/buidl/24038)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178c6?style=flat-square)](https://typescriptlang.org)
 
@@ -15,7 +16,7 @@ AI risk intelligence + wallet portfolio scanner for [Bags](https://bags.fm) trad
 
 ## What it does
 
-### 14 Pillars — fully implemented & deployed
+### 11 Pillars — fully implemented & deployed
 
 #### 1. Risk Scoring Engine (core)
 Real-time risk score **0-100** for any token on Bags. Combines 8 weighted signals from 4 data sources.
@@ -49,37 +50,28 @@ Detect unclaimed creator fees, prioritize by risk urgency (critical/warning/safe
 
 Agents vote independently → 2/3 supermajority consensus → single verdict with confidence score.
 
-#### 5. Campaign OS
-Fee-routing policies for token creators: define allocation splits (buyback, rewards, LP, ops) per token. Track routes + enforce policy compliance.
-
-#### 6. Creator Escrow
-Milestone-based escrow payments for creator collaborations. Lock funds on-chain, release on milestone completion, with dispute resolution flow.
-
-#### 7. Proof Dashboard
-KPI metrics + health score for tokens: fee efficiency, buyback consistency, collaborator payout rate. Transparent proof-of-value for creators.
-
-#### 8. Partner Integration (Bags-native)
+#### 5. Partner Integration (Bags-native)
 Register as a Bags partner, query partner config + BPS allocation, claim partner fees. Full REST integration with Bags Partner API.
 
-#### 9. $SENT Token Gating
+#### 6. $SENT Token Gating
 Premium access tiers based on $SENT holdings (via Helius RPC):
 - **Free**: 0 $SENT — basic features
 - **Holder**: ≥1 $SENT — priority alerts, deeper scans, auto-claim
 - **Whale**: ≥10,000 $SENT — API key, custom webhooks, bulk scanning
 
-#### 10. Alert Feed
+#### 7. Alert Feed
 Telegram alerts for risk changes, fee opportunities, and volume spikes. Per-wallet monitor registration with test pings.
 
-#### 11. Autonomous Firewall
+#### 8. Autonomous Firewall
 Pre-signature transaction screening — ALLOW / WARN / BLOCK decisions before your wallet signs. Auto-blocks rug-tier tokens, honeypots, and active LP drains. Per-wallet custom rules (whitelist/blocklist), configurable auto-protection settings, screening activity log, global stats.
 
-#### 12. Insurance Pool
+#### 9. Insurance Pool
 Community-backed rug protection. Stake $SENT in 3 tiers (Backer / Guardian / Whale Shield). File claims when tokens rug — auto-approved if risk score dropped 40+ points or token hit rug-tier. Pool health tracking, per-wallet claim history.
 
-#### 13. Creator Trust Score
+#### 10. Creator Trust Score
 Advanced creator reputation with 8 behavioral signals: token age patterns, serial launcher detection (5+ tokens in 30 days), LP removal tracking, mint authority retention, holder concentration analysis, fee consistency. Weighted scoring with human-readable risk flags and verdict.
 
-#### 14. Pre-Rug Simulator
+#### 11. Pre-Rug Simulator
 "What if?" analysis for 6 rug scenarios: LP Pull, Mint Exploit, Whale Dump, Freeze Attack, Slow Rug, Honeypot Activation. Each with probability, estimated loss %, timeframe, explanation, and mitigations. Overall risk + worst-case identification.
 
 ---
@@ -95,6 +87,27 @@ Advanced creator reputation with 8 behavioral signals: token age patterns, seria
 
 ---
 
+## Getting Started
+
+```bash
+# Clone & install
+git clone https://github.com/loquit-doru/sentinel.git
+cd sentinel && npm install
+
+# Create worker/.dev.vars with your API keys
+cp worker/.dev.vars.example worker/.dev.vars
+
+# Run locally
+npm run dev:worker     # API on http://localhost:8787
+npm run dev:dashboard  # Dashboard on http://localhost:5173
+
+# Typecheck & test
+npm run check          # All workspaces
+npm --workspace worker run test
+```
+
+---
+
 ## Architecture
 
 ```
@@ -106,9 +119,6 @@ sentinel/
 │       ├── fees/                → Smart fees + Bags fee integration
 │       ├── trade/swap.ts        → Trade quotes via Bags
 │       ├── swarm/               → 5-agent BFT consensus engine
-│       ├── campaign/            → Fee routing + policy enforcement
-│       ├── escrow/              → Milestone-based escrow
-│       ├── proof/               → KPI metrics + health scoring
 │       ├── partner/             → Bags partner REST integration
 │       ├── gate/                → $SENT token gating (Helius RPC)
 │       ├── app-store/           → App store metadata + fee-share config
@@ -122,15 +132,14 @@ sentinel/
 │       ├── XRayPage.tsx         → Wallet X-Ray
 │       ├── FeesPage.tsx         → Fee optimizer + claims
 │       ├── SwarmPage.tsx        → Multi-agent consensus
-│       ├── CampaignPage.tsx     → Campaign fee routing
-│       ├── EscrowPage.tsx       → Creator escrow
-│       ├── ProofPage.tsx        → Proof-of-value dashboard
+│       ├── FirewallPage.tsx     → Autonomous firewall
+│       ├── InsurancePage.tsx    → Community insurance pool
 │       └── BagsNativePage.tsx   → Partner + token gate + app store
 ├── mcp-server/                  → MCP Server (23 Claude tools)
 └── shared/                      → TypeScript types + constants
 ```
 
-### API Endpoints (51 routes)
+### API Endpoints (~38 routes)
 
 #### Risk & Discovery
 | Method | Route | Purpose |
@@ -156,19 +165,6 @@ sentinel/
 | POST | `/v1/swarm/analyze` | Full 5-agent consensus analysis |
 | POST | `/v1/swarm/quick` | Fast 2-agent preliminary scan |
 | GET | `/v1/swarm/agents` | List available agents + descriptions |
-
-#### Campaign OS & Escrow
-| Method | Route | Purpose |
-|--------|-------|---------|
-| POST | `/v1/campaign/policy` | Set fee routing policy for a token |
-| GET | `/v1/campaign/policy/:mint` | Get active policy |
-| POST | `/v1/campaign/route` | Route fees per policy |
-| GET | `/v1/campaign/routes/:mint` | Route history |
-| POST | `/v1/escrow/create` | Create milestone escrow |
-| GET | `/v1/escrow/:id` | Get escrow details |
-| POST | `/v1/escrow/:id/release` | Release milestone payment |
-| POST | `/v1/escrow/:id/dispute` | Raise dispute |
-| GET | `/v1/proof/:wallet` | Proof-of-value KPI snapshot |
 
 #### Bags-Native Integration
 | Method | Route | Purpose |
@@ -225,7 +221,7 @@ sentinel/
 - **Blockchain**: @solana/web3.js + @bagsfm/bags-sdk v1.3.7
 - **Risk Data**: RugCheck API + Birdeye API + Helius DAS + RPC
 - **Cache**: Cloudflare KV (60s risk, 5min fees, 5min gate)
-- **MCP**: Model Context Protocol — 23 tools for Claude
+- **MCP**: Model Context Protocol — 16 tools for Claude
 - **Analytics**: KV-based tracking (`ENABLE_KV_ANALYTICS=1`)
 
 ---
@@ -264,13 +260,6 @@ Sentinel exposes **23 tools** via the [Model Context Protocol](https://modelcont
 | `run_swarm_analysis` | Full 5-agent consensus analysis |
 | `run_quick_scan` | Fast 2-agent scan |
 | `list_swarm_agents` | List available agents |
-| `set_campaign_policy` | Set fee routing policy |
-| `get_campaign_policy` | Query active policy |
-| `route_campaign_fees` | Route fees per policy |
-| `create_escrow` | Create milestone escrow |
-| `get_escrow` | Query escrow details |
-| `release_escrow` | Release milestone payment |
-| `get_proof_snapshot` | Token health KPI metrics |
 | `get_partner_config` | Bags partner status + fee stats |
 | `check_token_gate` | $SENT holding tier check |
 | `get_app_info` | App store metadata |

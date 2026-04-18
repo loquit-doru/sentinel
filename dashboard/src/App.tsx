@@ -61,13 +61,13 @@ type TabId = 'discover' | 'xray' | 'alerts' | 'fees' | 'swarm' | 'monitor' | 'fi
 const PRIMARY_TABS: { id: TabId; label: string }[] = [
   { id: 'discover', label: 'Discovery' },
   { id: 'xray',     label: 'Wallet X-Ray' },
-  { id: 'alerts',   label: 'Risk Alerts' },
   { id: 'fees',     label: 'AutoClaim' },
-  { id: 'swarm',    label: 'AI Swarm' },
-  { id: 'monitor',  label: 'Monitor' },
+  { id: 'alerts',   label: 'Risk Alerts' },
 ];
 
 const MORE_TABS: { id: TabId; label: string }[] = [
+  { id: 'swarm',    label: '🤖 AI Swarm' },
+  { id: 'monitor',  label: '📡 Monitor' },
   { id: 'leaderboard', label: '🏆 Leaderboard' },
   { id: 'fee-analytics', label: '📊 Fee Intel' },
   { id: 'simulator', label: '🧪 Simulator' },
@@ -298,7 +298,7 @@ export function App() {
             <FeedPage tokens={tokens} loading={feedLoading} onSelectToken={handleSearch} />
           </>
         )}
-        {view.page === 'risk'     && <RiskDetailPage mint={view.mint} onBack={goFeed} />}
+        {view.page === 'risk'     && <RiskDetailPage mint={view.mint} onBack={goFeed} connectedWallet={connectedWallet} />}
         {view.page === 'xray'     && <WalletXRayPage onViewToken={handleSearch} connectedWallet={connectedWallet} />}
         {view.page === 'fees'     && <FeePage />}
         {view.page === 'alerts'   && <AlertFeedPage onViewToken={handleSearch} onViewCreator={goCreator} />}

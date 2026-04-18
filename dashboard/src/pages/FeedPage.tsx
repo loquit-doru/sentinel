@@ -108,7 +108,7 @@ export function FeedPage({ tokens, loading, onSelectToken }: {
   loading: boolean;
   onSelectToken: (mint: string) => void;
 }) {
-  const [sortBy, setSortBy] = useState<SortField>('fees');
+  const [sortBy, setSortBy] = useState<SortField>('volume');
   const [filterTier, setFilterTier] = useState<FilterTier>('all');
   const [search, setSearch] = useState('');
 

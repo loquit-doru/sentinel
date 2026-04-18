@@ -17,7 +17,7 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
 
   const handleConnect = async () => {
     if (!wallet || wallet.length < 32) {
-      setError('Introdu un wallet Solana valid');
+      setError('Enter a valid Solana wallet address');
       return;
     }
     setStep('connecting');
@@ -32,7 +32,7 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
       setStep('done');
       setRegistered(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Eroare la conectare');
+      setError(e instanceof Error ? e.message : 'Connection failed');
       setStep('error');
     }
   };
@@ -53,7 +53,7 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
           <span className="text-xs font-normal text-gray-500 px-2 py-0.5 rounded-full border border-sentinel-border/50">Telegram</span>
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Înregistrează wallet-ul și primești alerte pe Telegram automat — fees acumulate, tokeni periculoși, LP drain-uri.
+          Register your wallet and get automatic Telegram alerts — accumulated fees, risky tokens, LP drains.
         </p>
       </div>
 
@@ -61,10 +61,10 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
       <div className="p-4 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 space-y-3">
         <div className="flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-sentinel-accent/20 text-sentinel-accent text-xs flex items-center justify-center font-bold">1</span>
-          <h3 className="text-sm font-medium text-white">Pornește botul Telegram</h3>
+          <h3 className="text-sm font-medium text-white">Start the Telegram bot</h3>
         </div>
         <p className="text-xs text-gray-400 pl-7">
-          Deschide Telegram, caută <span className="text-sentinel-accent font-mono">@{BOT_HANDLE}</span> și apasă <strong>Start</strong>. Trimite orice mesaj.
+          Open Telegram, search for <span className="text-sentinel-accent font-mono">@{BOT_HANDLE}</span> and press <strong>Start</strong>. Send any message.
         </p>
         <a
           href={`https://t.me/${BOT_HANDLE}`}
@@ -72,7 +72,7 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
           rel="noopener noreferrer"
           className="ml-7 inline-flex items-center gap-1.5 text-xs bg-sentinel-accent hover:bg-sentinel-accent-dim text-white px-3 py-1.5 rounded-lg transition-all"
         >
-          Deschide @{BOT_HANDLE} ↗
+          Open @{BOT_HANDLE} ↗
         </a>
       </div>
 
@@ -80,31 +80,31 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
       <div className="p-4 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 space-y-4">
         <div className="flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-sentinel-accent/20 text-sentinel-accent text-xs flex items-center justify-center font-bold">2</span>
-          <h3 className="text-sm font-medium text-white">Configurează alertele</h3>
+          <h3 className="text-sm font-medium text-white">Configure alerts</h3>
         </div>
 
         <div className="space-y-3 pl-7">
           {/* Wallet */}
           <div className="space-y-1">
-            <label className="text-[11px] text-gray-500 uppercase tracking-wider">Wallet Solana</label>
+            <label className="text-[11px] text-gray-500 uppercase tracking-wider">Solana Wallet</label>
             <input
               type="text"
               value={wallet}
               onChange={e => setWallet(e.target.value.trim())}
-              placeholder="Adresa wallet-ului…"
+              placeholder="Wallet address…"
               spellCheck={false}
               className="w-full bg-sentinel-bg border border-sentinel-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-sentinel-accent/50 font-mono"
             />
             {connectedWallet && wallet !== connectedWallet && (
               <button onClick={() => setWallet(connectedWallet)} className="text-[11px] text-sentinel-accent hover:underline">
-                Folosește wallet conectat →
+                Use connected wallet →
               </button>
             )}
           </div>
 
           {/* Telegram username */}
           <div className="space-y-1">
-            <label className="text-[11px] text-gray-500 uppercase tracking-wider">Username Telegram <span className="text-gray-600">(opțional)</span></label>
+            <label className="text-[11px] text-gray-500 uppercase tracking-wider">Telegram Username <span className="text-gray-600">(optional)</span></label>
             <input
               type="text"
               value={username}
@@ -112,12 +112,12 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
               placeholder="@username"
               className="w-full bg-sentinel-bg border border-sentinel-border/50 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-sentinel-accent/50"
             />
-            <p className="text-[10px] text-gray-600">Lasă gol dacă ai trimis deja un mesaj botului — îl detectăm automat.</p>
+            <p className="text-[10px] text-gray-600">Leave empty if you've already messaged the bot — we'll auto-detect your chat.</p>
           </div>
 
           {/* Threshold */}
           <div className="space-y-1">
-            <label className="text-[11px] text-gray-500 uppercase tracking-wider">Prag alertă fees (USD)</label>
+            <label className="text-[11px] text-gray-500 uppercase tracking-wider">Fee alert threshold (USD)</label>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -127,7 +127,7 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
                 onChange={e => setThreshold(e.target.value)}
                 className="w-28 bg-sentinel-bg border border-sentinel-border/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sentinel-accent/50"
               />
-              <span className="text-xs text-gray-500">USD minim pentru alertă de fees</span>
+              <span className="text-xs text-gray-500">Minimum USD to trigger a fee alert</span>
             </div>
           </div>
         </div>
@@ -145,16 +145,16 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
         <div className="p-4 bg-sentinel-safe/5 border border-sentinel-safe/20 rounded-xl space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-sentinel-safe text-lg">✅</span>
-            <p className="text-sm font-medium text-white">Conectat cu succes!</p>
+            <p className="text-sm font-medium text-white">Connected successfully!</p>
           </div>
           <p className="text-xs text-gray-400">
-            Sentinel monitorizează wallet-ul la fiecare 15 minute. Vei primi un mesaj pe Telegram când apar fees de reclamat sau riscuri în portfolio.
+            Sentinel monitors your wallet every 15 minutes. You'll receive a Telegram message when fees accumulate or risks appear in your portfolio.
           </p>
           <button
             onClick={handleRemove}
             className="text-xs text-sentinel-danger hover:underline mt-1"
           >
-            Oprește monitorizarea →
+            Stop monitoring →
           </button>
         </div>
       )}
@@ -173,21 +173,21 @@ export function MonitorPage({ connectedWallet }: { connectedWallet: string | nul
           {step === 'connecting' ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-3.5 h-3.5 border-2 border-sentinel-accent border-t-transparent rounded-full animate-spin" />
-              Conectare…
+              Connecting…
             </span>
-          ) : 'Activează alerte Telegram'}
+          ) : 'Enable Telegram Alerts'}
         </button>
       )}
 
       {/* How it works */}
       <div className="p-4 rounded-xl border border-sentinel-border/30 bg-sentinel-surface/10 space-y-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ce monitorizează</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">What we monitor</h3>
         <div className="space-y-2">
           {[
-            { icon: '💰', label: 'Fees acumulate', desc: `Alertă când depășești $${threshold} unclaimed` },
-            { icon: '🚨', label: 'LP Drain', desc: 'Scădere bruscă de lichiditate la tokenii deținuți' },
-            { icon: '⚠️', label: 'Tier change', desc: 'Token din SAFE → CAUTION sau DANGER' },
-            { icon: '🛡️', label: 'Risc crescut', desc: 'Scor de risc care se deteriorează rapid' },
+            { icon: '💰', label: 'Accumulated fees', desc: `Alert when unclaimed fees exceed $${threshold}` },
+            { icon: '🚨', label: 'LP Drain', desc: 'Sudden liquidity drop in held tokens' },
+            { icon: '⚠️', label: 'Tier change', desc: 'Token moves from SAFE → CAUTION or DANGER' },
+            { icon: '🛡️', label: 'Rising risk', desc: 'Risk score deteriorating rapidly' },
           ].map(item => (
             <div key={item.label} className="flex items-start gap-3 text-xs">
               <span className="text-base shrink-0">{item.icon}</span>

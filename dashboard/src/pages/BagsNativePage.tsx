@@ -29,6 +29,7 @@ export default function BagsNativePage({ connectedWallet }: Props) {
   const [feeShare, setFeeShare] = useState<SentFeeShareData | null>(null);
   const [loading, setLoading] = useState('');
   const [error, setError] = useState('');
+  const [registerTx, setRegisterTx] = useState<string | null>(null);
 
   const load = async (label: string, fn: () => Promise<void>) => {
     setLoading(label);
@@ -62,9 +63,10 @@ export default function BagsNativePage({ connectedWallet }: Props) {
 
   const handleRegisterPartner = () => {
     if (!connectedWallet) return;
+    setRegisterTx(null);
     load('Registering partner...', async () => {
       const tx = await registerPartner(connectedWallet);
-      alert(`Partner registration tx created!\n\nSign with your wallet:\n${tx.transaction.slice(0, 40)}...`);
+      setRegisterTx(tx.transaction);
       setPartnerConfig(await fetchPartnerConfig(connectedWallet));
     });
   };
@@ -88,53 +90,54 @@ export default function BagsNativePage({ connectedWallet }: Props) {
   }, [connectedWallet]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6, color: '#06b6d4' }}>
-        🎒 Bags Native Integration
-      </h2>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 20 }}>
-        Partner config, $SENT token gating, fee-share setup, and app store presence.
-      </p>
+    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          🎒 Bags Native Integration
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Partner config, $SENT token gating, fee-share setup, and app store presence.
+        </p>
+      </div>
 
       {!connectedWallet && !appInfo && (
-        <div style={{
-          background: '#1e293b', borderRadius: 10, padding: 20, border: '1px solid #334155',
-          textAlign: 'center', marginBottom: 16,
-        }}>
-          <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 8 }}>
-            Connect your wallet to view $SENT tier, partner status, and claim fees.
-          </p>
-          <p style={{ color: '#64748b', fontSize: 12 }}>
-            App store info and fee-share config are available without a wallet.
-          </p>
+        <div className="p-4 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 text-center space-y-1">
+          <p className="text-sm text-gray-400">Connect your wallet to view $SENT tier, partner status, and claim fees.</p>
+          <p className="text-xs text-gray-600">App store info and fee-share config are available without a wallet.</p>
         </div>
       )}
 
       {error && (
-        <div style={{ background: '#7f1d1d', padding: '12px 16px', borderRadius: 8, color: '#fca5a5', margin: '16px 0', fontSize: 13 }}>
-          {error}
+        <div className="p-3 rounded-xl border border-sentinel-danger/30 bg-sentinel-danger/5 text-sm text-sentinel-danger">{error}</div>
+      )}
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <span className="w-4 h-4 border-2 border-sentinel-accent/30 border-t-sentinel-accent rounded-full animate-spin" />
+          {loading}
         </div>
       )}
 
       {/* Token Gate */}
       {gateResult && (
-        <div style={{ background: '#1e293b', borderRadius: 10, padding: 20, marginBottom: 16, border: '1px solid #334155' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="p-5 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 space-y-4">
+          <h3 className="text-base font-bold flex items-center gap-2">
             {TIER_EMOJI[gateResult.tier]} $SENT Token Gate
-            <span style={{
-              background: TIER_COLORS[gateResult.tier], color: '#0f172a',
-              padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginLeft: 8,
-            }}>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+              gateResult.tier === 'whale' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+              gateResult.tier === 'holder' ? 'bg-sentinel-accent/20 text-sentinel-accent border border-sentinel-accent/30' :
+              'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+            }`}>
               {gateResult.tier.toUpperCase()}
             </span>
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-3 gap-3">
             <StatCard label="$SENT Balance" value={gateResult.sentBalance.toLocaleString()} />
             <StatCard label="Tier" value={gateResult.tier} />
             <StatCard label="Premium Access" value={gateResult.eligible ? '✅ Yes' : '❌ No'} />
           </div>
           {!gateResult.eligible && (
-            <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 10 }}>
+            <p className="text-xs text-gray-500">
               Hold ≥1 $SENT to unlock premium features (priority alerts, deeper scans, auto-claim).
               Hold ≥10,000 $SENT for whale tier (API key, bulk scanning).
             </p>
@@ -144,39 +147,41 @@ export default function BagsNativePage({ connectedWallet }: Props) {
 
       {/* Partner Config */}
       {partnerConfig && (
-        <div style={{ background: '#1e293b', borderRadius: 10, padding: 20, marginBottom: 16, border: '1px solid #334155' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
-            🤝 Partner Registration
-          </h3>
+        <div className="p-5 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 space-y-4">
+          <h3 className="text-base font-bold">🤝 Partner Registration</h3>
           {partnerConfig.registered && partnerConfig.config ? (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <StatCard label="Partner BPS" value={`${partnerConfig.config.bps} bps`} />
                 <StatCard label="Status" value="✅ Registered" />
               </div>
               {partnerStats && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                <div className="grid grid-cols-2 gap-3">
                   <StatCard label="Claimed Fees" value={`$${partnerStats.claimedFeesUsd.toFixed(2)}`} />
                   <StatCard label="Unclaimed Fees" value={`$${partnerStats.unclaimedFeesUsd.toFixed(2)}`} />
                 </div>
               )}
-            </>
+            </div>
           ) : (
-            <div>
-              <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 12 }}>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400">
                 Register as a Bags partner to receive a share of fees from tokens that integrate with Sentinel.
               </p>
               <button
                 onClick={handleRegisterPartner}
                 disabled={!!loading}
-                style={{
-                  background: '#22c55e', color: '#0f172a', border: 'none',
-                  borderRadius: 8, padding: '10px 24px', fontWeight: 700, fontSize: 14,
-                  cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1,
-                }}
+                className="px-5 py-2.5 bg-sentinel-safe hover:bg-sentinel-safe/80 text-sentinel-bg font-bold text-sm rounded-lg transition-all disabled:opacity-50"
               >
-                {loading === 'Registering partner...' ? loading : 'Register as Partner'}
+                {loading === 'Registering partner...' ? 'Registering…' : 'Register as Partner'}
               </button>
+            </div>
+          )}
+          {/* Show raw tx for user to sign */}
+          {registerTx && (
+            <div className="p-3 rounded-lg border border-sentinel-accent/30 bg-sentinel-accent/5 space-y-1">
+              <p className="text-xs font-semibold text-sentinel-accent">Partner registration transaction created</p>
+              <p className="text-[10px] text-gray-400">Sign this transaction with your wallet to complete registration:</p>
+              <p className="text-[10px] font-mono text-gray-300 break-all">{registerTx}</p>
             </div>
           )}
         </div>
@@ -184,66 +189,60 @@ export default function BagsNativePage({ connectedWallet }: Props) {
 
       {/* Fee Share Config */}
       {feeShare && (
-        <div style={{ background: '#1e293b', borderRadius: 10, padding: 20, marginBottom: 16, border: '1px solid #334155' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
-            💰 $SENT Fee Share Config
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div className="p-5 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 space-y-4">
+          <h3 className="text-base font-bold">💰 $SENT Fee Share Config</h3>
+          <div className="grid grid-cols-4 gap-3">
             <StatCard label="Creator" value={`${feeShare.allocations.creatorPct}%`} />
             <StatCard label="Holders" value={`${feeShare.allocations.holdersPct}%`} />
             <StatCard label="Dev Fund" value={`${feeShare.allocations.devFundPct}%`} />
             <StatCard label="Partner" value={`${feeShare.allocations.partnerPct}%`} />
           </div>
-          <div style={{ display: 'flex', height: 20, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
-            <div style={{ width: `${feeShare.allocations.creatorPct}%`, background: '#06b6d4' }} title="Creator" />
-            <div style={{ width: `${feeShare.allocations.holdersPct}%`, background: '#22c55e' }} title="Holders" />
-            <div style={{ width: `${feeShare.allocations.devFundPct}%`, background: '#f59e0b' }} title="Dev" />
-            <div style={{ width: `${feeShare.allocations.partnerPct}%`, background: '#8b5cf6' }} title="Partner" />
+          {/* Distribution bar */}
+          <div className="h-5 rounded-lg overflow-hidden flex">
+            <div style={{ width: `${feeShare.allocations.creatorPct}%` }} className="bg-sentinel-accent" title="Creator" />
+            <div style={{ width: `${feeShare.allocations.holdersPct}%` }} className="bg-sentinel-safe" title="Holders" />
+            <div style={{ width: `${feeShare.allocations.devFundPct}%` }} className="bg-yellow-500" title="Dev" />
+            <div style={{ width: `${feeShare.allocations.partnerPct}%` }} className="bg-purple-500" title="Partner" />
           </div>
-          <div style={{ display: 'flex', gap: 16, fontSize: 11, color: '#94a3b8' }}>
-            <span><span style={{ color: '#06b6d4' }}>■</span> Creator</span>
-            <span><span style={{ color: '#22c55e' }}>■</span> Holders</span>
-            <span><span style={{ color: '#f59e0b' }}>■</span> Dev Fund</span>
-            <span><span style={{ color: '#8b5cf6' }}>■</span> Partner</span>
+          <div className="flex gap-4 text-xs text-gray-500">
+            <span><span className="text-sentinel-accent">■</span> Creator</span>
+            <span><span className="text-sentinel-safe">■</span> Holders</span>
+            <span><span className="text-yellow-500">■</span> Dev Fund</span>
+            <span><span className="text-purple-500">■</span> Partner</span>
           </div>
         </div>
       )}
 
       {/* App Store Info */}
       {appInfo && (
-        <div style={{ background: '#1e293b', borderRadius: 10, padding: 20, border: '1px solid #334155' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
-            🏪 App Store Profile
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '6px 16px', fontSize: 13 }}>
-            <span style={{ color: '#94a3b8' }}>Name</span>
-            <span style={{ fontWeight: 600 }}>{appInfo.name}</span>
-            <span style={{ color: '#94a3b8' }}>Tagline</span>
-            <span>{appInfo.tagline}</span>
-            <span style={{ color: '#94a3b8' }}>Category</span>
-            <span>{appInfo.category}</span>
-            <span style={{ color: '#94a3b8' }}>Token</span>
+        <div className="p-5 rounded-xl border border-sentinel-border/50 bg-sentinel-surface/20 space-y-4">
+          <h3 className="text-base font-bold">🏪 App Store Profile</h3>
+          <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-sm">
+            <span className="text-gray-500">Name</span>
+            <span className="font-semibold text-white">{appInfo.name}</span>
+            <span className="text-gray-500">Tagline</span>
+            <span className="text-gray-300">{appInfo.tagline}</span>
+            <span className="text-gray-500">Category</span>
+            <span className="text-gray-300">{appInfo.category}</span>
+            <span className="text-gray-500">Token</span>
             <span>
-              <a href={appInfo.token.bagsUrl} target="_blank" rel="noreferrer" style={{ color: '#06b6d4' }}>
+              <a href={appInfo.token.bagsUrl} target="_blank" rel="noreferrer" className="text-sentinel-accent hover:underline">
                 ${appInfo.token.symbol}
               </a>
             </span>
-            <span style={{ color: '#94a3b8' }}>Version</span>
-            <span>{appInfo.version}</span>
-            <span style={{ color: '#94a3b8' }}>Features</span>
-            <span>{appInfo.features.length} capabilities</span>
+            <span className="text-gray-500">Version</span>
+            <span className="text-gray-300">{appInfo.version}</span>
+            <span className="text-gray-500">Features</span>
+            <span className="text-gray-300">{appInfo.features.length} capabilities</span>
           </div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-2">
             {Object.entries(appInfo.links).map(([key, url]) => (
               <a
                 key={key}
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  background: '#334155', color: '#e2e8f0', padding: '4px 12px',
-                  borderRadius: 6, fontSize: 12, textDecoration: 'none',
-                }}
+                className="px-3 py-1 text-xs rounded-lg border border-sentinel-border/50 text-gray-300 hover:text-white hover:border-sentinel-accent/40 transition-colors"
               >
                 {key}
               </a>
@@ -257,9 +256,9 @@ export default function BagsNativePage({ connectedWallet }: Props) {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ background: '#0f172a', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
-      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0' }}>{value}</div>
+    <div className="p-3 rounded-xl border border-sentinel-border/40 bg-sentinel-bg/60 text-center">
+      <p className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</p>
+      <p className="text-base font-bold text-white mt-0.5">{value}</p>
     </div>
   );
 }

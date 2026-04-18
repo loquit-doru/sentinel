@@ -323,6 +323,7 @@ export interface InsuranceCommitment {
   amountSent: number;
   tier: 'backer' | 'guardian' | 'whale-shield';
   committedAt: number;
+  txSignature?: string;
 }
 
 export interface InsuranceClaim {

@@ -1,4 +1,6 @@
 import { computeRiskScore } from '../risk/engine';
+import { checkTokenGate } from '../gate/token-gate';
+import { SENT_MINT, INSURANCE_POOL_WALLET } from '../../../shared/constants';
 import type {
   InsuranceCommitment,
   InsuranceClaim,
@@ -19,6 +21,52 @@ function commitmentTier(amount: number): InsuranceCommitment['tier'] {
   if (amount >= 100_000) return 'whale-shield';
   if (amount >= 10_000) return 'guardian';
   return 'backer';
+}
+
+// ── On-chain tx verification ─────────────────────────────
+
+async function verifyInsuranceTx(
+  txSignature: string,
+  expectedSender: string,
+  expectedAmount: number,
+  heliusApiKey: string,
+): Promise<{ verified: boolean; error?: string }> {
+  const rpcUrl = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
+  const res = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'getTransaction',
+      params: [txSignature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
+    }),
+  });
+  const data = await res.json() as { result?: { meta?: { err: unknown }; transaction?: { message?: { accountKeys?: Array<{ pubkey: string }>; instructions?: Array<{ parsed?: { type?: string; info?: { authority?: string; destination?: string; amount?: string; mint?: string } } }> } } } };
+  if (!data.result) return { verified: false, error: 'Transaction not found on-chain' };
+  if (data.result.meta?.err) return { verified: false, error: 'Transaction failed on-chain' };
+
+  // Parse SPL token transfer instructions
+  const instructions = data.result.transaction?.message?.instructions ?? [];
+  for (const ix of instructions) {
+    const parsed = ix.parsed;
+    if (!parsed) continue;
+    if (parsed.type === 'transferChecked' || parsed.type === 'transfer') {
+      const info = parsed.info;
+      if (!info) continue;
+      // Verify sender authority matches expected wallet
+      if (info.authority !== expectedSender) continue;
+      // Verify the mint is $SENT (only available on transferChecked)
+      if (parsed.type === 'transferChecked' && info.mint && info.mint !== SENT_MINT) continue;
+      // Amount is in raw token units — $SENT uses 9 decimals on Bags
+      const rawAmount = Number(info.amount ?? '0');
+      if (rawAmount > 0) {
+        return { verified: true };
+      }
+    }
+  }
+
+  return { verified: false, error: 'No valid $SENT transfer found in transaction' };
 }
 
 // ── Pool stats ───────────────────────────────────────────
@@ -55,8 +103,34 @@ export async function commitToPool(
   wallet: string,
   amountSent: number,
   kv: KVNamespace,
+  heliusApiKey?: string,
+  txSignature?: string,
 ): Promise<{ commitment: InsuranceCommitment; poolStats: InsurancePoolStats }> {
   if (amountSent <= 0) throw new Error('Amount must be positive');
+
+  // Require on-chain tx signature
+  if (!txSignature) throw new Error('Transaction signature required — commit $SENT on-chain first');
+  if (!heliusApiKey) throw new Error('Helius API key not configured');
+
+  // Replay prevention: check if this tx was already used
+  const txKey = `ins:tx:${txSignature}`;
+  const usedTx = await kv.get(txKey);
+  if (usedTx) throw new Error('Transaction already used for a commitment');
+
+  // Verify the transaction on-chain
+  const verification = await verifyInsuranceTx(txSignature, wallet, amountSent, heliusApiKey);
+  if (!verification.verified) {
+    throw new Error(verification.error ?? 'Transaction verification failed');
+  }
+
+  // Mark tx as used (replay prevention)
+  await kv.put(txKey, wallet, { expirationTtl: 86400 * 365 });
+
+  // Verify the wallet actually holds $SENT before accepting a commitment
+  const gate = await checkTokenGate(wallet, heliusApiKey ?? '', kv);
+  if (gate.tier === 'free') {
+    throw new Error('Must hold $SENT to commit to the insurance pool');
+  }
 
   const commitments = await getCommitments(kv);
   const stats = await getPoolStats(kv);
@@ -73,6 +147,7 @@ export async function commitToPool(
       amountSent,
       tier: commitmentTier(amountSent),
       committedAt: Date.now(),
+      txSignature,
     });
     stats.totalCommittors++;
   }
